@@ -2,10 +2,12 @@ package com.daquexian.chaoli.forum.view;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -44,10 +46,20 @@ public class EntryPointActivity extends BaseActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             new AlertDialog.Builder(this)
                     .setMessage(getString(R.string.need_write_permission))
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            ActivityCompat.requestPermissions(EntryPointActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSION_CODE);
+                        }
+                    })
                     .show();
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSION_CODE);
+        } else {
+            core();
         }
 
+    }
+
+    private void core() {
         Intent intent = getIntent();
         Uri uri = intent.getData();
 
@@ -105,6 +117,11 @@ public class EntryPointActivity extends BaseActivity {
                 });
             }
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        core();
     }
 
     private void startActivityWithoutAnimation(Intent intent) {
