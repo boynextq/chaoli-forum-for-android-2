@@ -39,7 +39,7 @@ public class EntryPointActivity extends BaseActivity {
 
         if (uri == null) {
             Intent goToMainActivity = new Intent(this, MainActivity.class);
-            startActivity(goToMainActivity);
+            startActivityWithoutAnimation(goToMainActivity);
         } else {
             final String url = uri.toString();
             Log.d(TAG, "onCreate: url = " + url);
@@ -49,7 +49,7 @@ public class EntryPointActivity extends BaseActivity {
 
             if (matcher[0].find()) {
                 Intent goToMainActivity = new Intent(this, MainActivity.class);
-                startActivity(goToMainActivity);
+                startActivityWithoutAnimation(goToMainActivity);
             } else {
                 final SwipeRefreshLayout swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.srl);
                 swipeRefreshLayout.setRefreshing(true);
@@ -65,7 +65,7 @@ public class EntryPointActivity extends BaseActivity {
                             String conversationId = matcher[0].group(2);
                             Intent goToPostActivity = new Intent(EntryPointActivity.this, PostActivity.class);
                             goToPostActivity.putExtra("conversationId", Integer.parseInt(conversationId));
-                            startActivity(goToPostActivity);
+                            startActivityWithoutAnimation(goToPostActivity);
                         } else {
                             showToast(R.string.not_support_temporarily);
                             finish();
@@ -91,6 +91,11 @@ public class EntryPointActivity extends BaseActivity {
                 });
             }
         }
+    }
+
+    private void startActivityWithoutAnimation(Intent intent) {
+        getWindow().setWindowAnimations(0);
+        startActivity(intent);
     }
 
     @Override
