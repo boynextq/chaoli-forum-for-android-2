@@ -93,7 +93,7 @@ public class Constants
 	public static final String loginSPKey = "listJSON";
 	public static final String loginBool = "logged";
 
-	public static final String[] IMAGE_FILE_EXTENSION = {".jpg", ".png", ".gif"};
+	public static final String[] IMAGE_FILE_EXTENSION = {".jpg", ".png", ".gif", ".jpeg"};
 
 	public static final String NONE = "none";
 
