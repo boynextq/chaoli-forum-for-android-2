@@ -170,4 +170,5 @@
 	<string name="exist_inviting_code_message_2">确定吗？这可能会让您需要重新答题。</string>
 	<string name="share_message">分享自超理论坛</string>
 	<string name="not_support_temporarily">暂不支持该类型的链接，请从浏览器打开</string>
+	<string name="see_codes_in_original_post">[代码部分请在原帖中查看]</string>
 </resources>

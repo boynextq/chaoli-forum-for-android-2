@@ -221,7 +221,7 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 		toReply.putExtra("conversationId", mConversationId);
 		toReply.putExtra("postId", post.getPostId());
 		toReply.putExtra("replyTo", post.getUsername());
-		toReply.putExtra("replyMsg", PostUtils.removeQuote(post.getContent()));
+		toReply.putExtra("replyMsg", PostUtils.formatQuote(post.getContent()));
 		startActivityForResult(toReply, REPLY_CODE);
 	}
 

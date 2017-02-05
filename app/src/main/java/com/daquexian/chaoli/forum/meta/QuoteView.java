@@ -15,6 +15,7 @@ import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.PostUtils;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 用于显示帖子中的引用
@@ -76,7 +77,8 @@ public class QuoteView extends LinearLayout {
         });
     }*/
     public void setText(String content) {
-        mTextView.setText(PostUtils.removeQuote(content));
+        Pattern codePattern = Pattern.compile("\\[code](.|\n)*\\[/code]");
+        mTextView.setText(PostUtils.formatQuote(content));
         mTextView.post(new Runnable() {
             @Override
             public void run() {

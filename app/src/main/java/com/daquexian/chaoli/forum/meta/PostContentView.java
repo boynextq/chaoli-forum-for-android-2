@@ -11,6 +11,7 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -18,15 +19,17 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.github.kbiakov.codeview.CodeView;
 
 /**
  * 包含QuoteView和OnlineImgTextView
@@ -38,7 +41,10 @@ public class PostContentView extends LinearLayout {
     private final static String QUOTE_START_TAG = "[quote";
     private final static Pattern QUOTE_START_PATTERN = Pattern.compile("\\[quote(=(\\d+?):@(.*?))?]");
     private final static String QUOTE_END_TAG = "[/quote]";
+    private final static String CODE_START_TAG = "[code]";
+    private final static String CODE_END_TAG = "[/code]";
     private final static Pattern ATTACHMENT_PATTERN = Pattern.compile("\\[attachment:(.*?)]");
+    private final static String[] TAGS = {QUOTE_START_TAG, QUOTE_END_TAG, CODE_START_TAG, CODE_END_TAG};
 
     private Context mContext;
     private Post mPost;
@@ -61,7 +67,19 @@ public class PostContentView extends LinearLayout {
     }
 
 
-
+    /**
+     * Recursive descent
+     *
+     * fullContent  -> quote attachment
+     *
+     * quote        -> LaTeX QUOTE_START content QUOTE_END quote
+     *                  | content
+     *
+     * content      -> LaTeX CODE_START code CODE_END content
+     *                  | LaTeX
+     *
+     * @param post the post
+     */
     public void setPost(Post post) {
         removeAllViews();
         mPost = post;
@@ -69,7 +87,14 @@ public class PostContentView extends LinearLayout {
         List<Post.Attachment> attachmentList = new ArrayList<>(post.getAttachments());
         String content = post.getContent();
         content = content.replaceAll("\u00AD", "");
-        Matcher attachmentMatcher = ATTACHMENT_PATTERN.matcher(content);
+        fullContent(content, attachmentList);
+    }
+
+    /**
+     * see {@link #setPost(Post)}
+     */
+    private void fullContent(String str, List<Post.Attachment> attachmentList) {
+        Matcher attachmentMatcher = ATTACHMENT_PATTERN.matcher(str);
         while (attachmentMatcher.find()) {
             String id = attachmentMatcher.group(1);
             for (int i = attachmentList.size() - 1; i >= 0; i--) {
@@ -80,33 +105,7 @@ public class PostContentView extends LinearLayout {
             }
         }
 
-        int quoteStartPos, quoteEndPos = 0;
-        String piece, quote;
-        Matcher quoteMatcher = QUOTE_START_PATTERN.matcher(content);
-        while (quoteEndPos != -1 && quoteMatcher.find(quoteEndPos)) {
-            quoteStartPos = quoteMatcher.start();
-
-            if (quoteEndPos != quoteStartPos) {
-                piece = content.substring(quoteEndPos, quoteStartPos);
-                addLaTeXView(piece);
-            }
-            quoteEndPos = pairedQuote(content, quoteStartPos);
-            //quoteEndPos = content.indexOf(QUOTE_END_TAG, quoteStartPos) + QUOTE_END_TAG.length();
-            if (quoteEndPos == -1) {
-                piece = content.substring(quoteStartPos);
-                addLaTeXView(piece);
-                quoteEndPos = content.length();
-            } else if (mShowQuote) {
-                quote = content.substring(quoteStartPos + quoteMatcher.group().length(), quoteEndPos - QUOTE_END_TAG.length());
-                addQuoteView(quote);
-            } else {
-                addQuoteView("...");
-            }
-        }
-        if (quoteEndPos != content.length()) {
-            piece = content.substring(quoteEndPos);
-            addLaTeXView(piece);
-        }
+        quote(str);
 
         SpannableStringBuilder builder = new SpannableStringBuilder();
 
@@ -160,24 +159,72 @@ public class PostContentView extends LinearLayout {
         }
     }
 
+    /**
+     * see {@link #setPost(Post)}
+     */
+    private void quote(String str) {
+        int quoteStartPos, quoteEndPos = 0;
+        String piece, quote;
+        Matcher quoteMatcher = QUOTE_START_PATTERN.matcher(str);
+        while (quoteEndPos != -1 && quoteMatcher.find(quoteEndPos)) {
+            quoteStartPos = quoteMatcher.start();
 
+            if (quoteEndPos != quoteStartPos) {
+                piece = str.substring(quoteEndPos, quoteStartPos);
+                content(piece);
+            }
+            quoteEndPos = pairedIndex(str, quoteStartPos, QUOTE_START_TAG, QUOTE_END_TAG);
 
-    private int pairedQuote(String str, int from) {
-        int times = 0;
-        for (int i = from; i < str.length(); i++) {
-            if (str.substring(i).startsWith(QUOTE_START_TAG)) {
-                times++;
-            } else if (str.substring(i).startsWith(QUOTE_END_TAG)) {
-                times--;
-                if (times == 0) {
-                    return i + QUOTE_END_TAG.length();
-                }
+            if (quoteEndPos == -1) {
+                piece = str.substring(quoteStartPos);
+                content(piece);
+                quoteEndPos = str.length();
+            } else if (mShowQuote) {
+                quote = str.substring(quoteStartPos + quoteMatcher.group().length(), quoteEndPos - QUOTE_END_TAG.length());
+                addQuoteView(quote);
+            } else {
+                addQuoteView("...");
             }
         }
-        return -1;
+        if (quoteEndPos != str.length()) {
+            piece = str.substring(quoteEndPos);
+            content(piece);
+        }
     }
 
-    private void addLaTeXView(String content) {
+    /**
+     * see {@link #setPost(Post)}
+     */
+    private void content(String str) {
+        int codeStartPos, codeEndPos = 0;
+        String piece, code;
+        while (codeEndPos != -1 && (codeStartPos = str.indexOf(CODE_START_TAG, codeEndPos)) >= 0) {//codeMatcher.find(codeEndPos)) {
+            if (codeEndPos != codeStartPos) {
+                piece = str.substring(codeEndPos, codeStartPos);
+                LaTeX(piece);
+            }
+            codeEndPos = pairedIndex(str, codeStartPos, CODE_START_TAG, CODE_END_TAG);
+            //codeEndPos = content.indexOf(CODE_END_TAG, codeStartPos) + CODE_END_TAG.length();
+            if (codeEndPos == -1) {
+                piece = str.substring(codeStartPos);
+                LaTeX(piece);
+                codeEndPos = str.length();
+            } else {
+                code = str.substring(codeStartPos + CODE_START_TAG.length(), codeEndPos - CODE_END_TAG.length());
+                code(code);
+            }
+        }
+        if (codeEndPos != str.length()) {
+            piece = str.substring(codeEndPos);
+            LaTeX(piece);
+        }
+    }
+
+    /**
+     * see {@link #setPost(Post)}
+     */
+    private void LaTeX(String content) {
+        content = removeTags(content);
         OnlineImgTextView onlineImgTextView;
         onlineImgTextView = new OnlineImgTextView(mContext, mAttachmentList);
         onlineImgTextView.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -190,6 +237,31 @@ public class PostContentView extends LinearLayout {
         //laTeXtView.setOnLongClickListener();
     }
 
+    /**
+     * see {@link #setPost(Post)}
+     */
+    private void code(String str) {
+        str = removeTags(str);
+        CodeView codeView = (CodeView) LayoutInflater.from(mContext).inflate(R.layout.code_view, this, false);
+        codeView.setCode(str);
+        addView(codeView);
+    }
+
+    private int pairedIndex(String str, int from, String startTag, String endTag) {
+        int times = 0;
+        for (int i = from; i < str.length(); i++) {
+            if (str.substring(i).startsWith(startTag)) {
+                times++;
+            } else if (str.substring(i).startsWith(endTag)) {
+                times--;
+                if (times == 0) {
+                    return i + endTag.length();
+                }
+            }
+        }
+        return -1;
+    }
+
     private void addQuoteView(String content) {
         QuoteView quoteView = new QuoteView(mContext, mAttachmentList);
         LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -198,6 +270,14 @@ public class PostContentView extends LinearLayout {
         quoteView.setOrientation(VERTICAL);
         quoteView.setText(content);
         addView(quoteView);
+    }
+
+    private String removeTags(String str) {
+        for (String tag : TAGS) {
+            str = str.replace(tag, "");
+        }
+
+        return str;
     }
 
     public void init(Context context) {

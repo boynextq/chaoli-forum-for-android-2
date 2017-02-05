@@ -3,6 +3,7 @@ package com.daquexian.chaoli.forum.utils;
 import android.content.Context;
 
 import com.daquexian.chaoli.forum.ChaoliApplication;
+import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.data.Me;
 import com.daquexian.chaoli.forum.meta.Constants;
 import com.daquexian.chaoli.forum.network.MyOkHttp;
@@ -16,6 +17,7 @@ public class PostUtils
 {
 	public static final String TAG = "PostUtils";
 	private static final String quoteRegex = "\\[quote((.|\n)*?)\\[/quote]";
+	private static final String codeRegex = "\\[code]((.|\n)*?)\\[/code]";
 
 	public static void reply(int conversationId, String content, final ReplyObserver observer)
 	{
@@ -106,8 +108,16 @@ public class PostUtils
 	 * @param content API获得的帖子内容
 	 * @return 去除引用之后的内容，显示给用户或用于在发帖时避免多重引用
      */
-	public static String removeQuote(String content) {
+	private static String removeQuote(String content) {
 		return content.replaceAll(quoteRegex, "");
+	}
+
+	private static String replaceCode(String content) {
+		return content.replaceAll(codeRegex, ChaoliApplication.getAppContext().getString(R.string.see_codes_in_original_post));
+	}
+
+	public static String formatQuote(String quote) {
+		return removeQuote(replaceCode(quote));
 	}
 
 	public static Boolean canEdit(int postId) {
