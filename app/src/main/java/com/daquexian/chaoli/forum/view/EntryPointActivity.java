@@ -94,8 +94,8 @@ public class EntryPointActivity extends BaseActivity {
     }
 
     private void startActivityWithoutAnimation(Intent intent) {
-        getWindow().setWindowAnimations(0);
-        startActivity(intent);
+        // getWindow().setWindowAnimations(0);
+        startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION));
     }
 
     @Override
