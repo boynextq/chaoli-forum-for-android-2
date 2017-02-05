@@ -1,9 +1,11 @@
 package com.daquexian.chaoli.forum.meta;
 
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Environment;
 import android.support.v4.content.ContextCompat;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -22,6 +24,8 @@ import com.bumptech.glide.Glide;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
+import com.daquexian.chaoli.forum.utils.PostUtils;
+import com.google.android.gms.appindexing.Action;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -30,6 +34,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.github.kbiakov.codeview.CodeView;
+
+import static android.content.Context.DOWNLOAD_SERVICE;
 
 /**
  * 包含QuoteView和OnlineImgTextView
@@ -47,6 +53,7 @@ public class PostContentView extends LinearLayout {
     private final static String[] TAGS = {QUOTE_START_TAG, QUOTE_END_TAG, CODE_START_TAG, CODE_END_TAG};
 
     private Context mContext;
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private Post mPost;
     private int mConversationId;
     private List<Post.Attachment> mAttachmentList;
@@ -110,7 +117,7 @@ public class PostContentView extends LinearLayout {
         SpannableStringBuilder builder = new SpannableStringBuilder();
 
         boolean isImage = false;
-        for (Post.Attachment attachment : attachmentList) {
+        for (final Post.Attachment attachment : attachmentList) {
             for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
                 if (attachment.getFilename().endsWith(image_ext)) {
                     isImage = true;
@@ -130,21 +137,28 @@ public class PostContentView extends LinearLayout {
                         .into(imageView);
                 addView(imageView);
             } else {
-                try {
-                    final String finalUrl = MyUtils.getAttachmentFileUrl(attachment);
                     int start = builder.length();
                     builder.append(attachment.getFilename());
                     builder.setSpan(new ClickableSpan() {
                         @Override
                         public void onClick(View view) {
                             Log.d(TAG, "onClick() called with: view = [" + view + "]");
-                            mContext.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalUrl)));
+                            MyUtils.downloadAttachment(mContext, attachment);
+                            /* try {
+                                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
+                                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, Constants.APP_DIR_NAME + "/" + attachment.getFilename());
+                                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
+                                request.allowScanningByMediaScanner();// if you want to be available from media players
+                                DownloadManager manager = (DownloadManager) mContext.getSystemService(DOWNLOAD_SERVICE);
+                                manager.enqueue(request);
+                            } catch (SecurityException e) {
+                                // in the case of user rejects the permission request
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(attUrl));
+                                mContext.startActivity(intent);
+                            } */
                         }
                     }, start, start + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                     builder.append("\n\n");
-                } catch (UnsupportedEncodingException e) {
-                    Log.w(TAG, "parse: ", e);
-                }
             }
         }
 
@@ -293,6 +307,7 @@ public class PostContentView extends LinearLayout {
         this.mConversationId = mConversationId;
     }
 
+    @SuppressWarnings("unused")
     public void showQuote(Boolean showQuote) {
         mShowQuote = showQuote;
     }

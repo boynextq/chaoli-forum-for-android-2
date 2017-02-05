@@ -1,5 +1,12 @@
 package com.daquexian.chaoli.forum.utils;
 
+import android.app.DownloadManager;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Environment;
+import android.widget.Toast;
+
 import com.daquexian.chaoli.forum.meta.Constants;
 import com.daquexian.chaoli.forum.model.Post;
 
@@ -7,6 +14,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+
+import static android.content.Context.DOWNLOAD_SERVICE;
 
 /**
  * various strange things
@@ -61,6 +70,32 @@ public class MyUtils {
             reversed.add(0, item);
         }
         return reversed;
+    }
+
+    public static String formatSignature(String str) {
+        return str.replace("[code]", "").replace("[/code]", "");
+    }
+
+    public static void downloadAttachment(Context context, Post.Attachment attachment) {
+        try {
+            String attUrl = MyUtils.getAttachmentFileUrl(attachment);
+            try {
+                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, attachment.getFilename());
+                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
+                request.allowScanningByMediaScanner();// if you want to be available from media players
+                DownloadManager manager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
+                manager.enqueue(request);
+            } catch (SecurityException e) {
+                // in the case of user rejects the permission request
+                e.printStackTrace();
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(attUrl));
+                context.startActivity(intent);
+            }
+        } catch (UnsupportedEncodingException e) {
+            // say bye-bye to your poor phone
+            Toast.makeText(context, "say bye-bye to your poor phone", Toast.LENGTH_SHORT).show();
+        }
     }
 
     public static String getAttachmentImageUrl(Post.Attachment attachment) {

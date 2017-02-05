@@ -1,7 +1,5 @@
 package com.daquexian.chaoli.forum.utils;
 
-import android.content.Context;
-
 import com.daquexian.chaoli.forum.ChaoliApplication;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.data.Me;

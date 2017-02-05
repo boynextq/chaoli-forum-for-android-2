@@ -1,10 +1,16 @@
 package com.daquexian.chaoli.forum.view;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 
 import com.daquexian.chaoli.forum.R;
@@ -27,12 +33,20 @@ public class EntryPointActivity extends BaseActivity {
     private static final String CONVERSATION_PATTERN = "https://(www.)?chaoli.club/index.php/(\\d+)$";
     private static final String HOMEPAGE_PATTERN = "https://(www.)?chaoli.club/index.php/member/(\\d+)$";
 
+    private static final int REQUEST_PERMISSION_CODE = 1;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_entry_point);
 
         configToolbar(R.string.app_name);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            new AlertDialog.Builder(this)
+                    .setMessage(getString(R.string.need_write_permission))
+                    .show();
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSION_CODE);
+        }
 
         Intent intent = getIntent();
         Uri uri = intent.getData();

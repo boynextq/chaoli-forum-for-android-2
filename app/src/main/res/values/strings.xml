@@ -174,4 +174,5 @@
 	<string name="share_message">via Chaoli Forum</string>
 	<string name="not_support_temporarily">Not support this kind of link temporarily, please use browser instead.</string>
 	<string name="see_codes_in_original_post">[please see codes in original post]</string>
+	<string name="need_write_permission">Due to the change of download strategy, we need the permission of writing externel storage to invoke download manager, our app is open-sourced at GitHub :)</string>
 </resources>

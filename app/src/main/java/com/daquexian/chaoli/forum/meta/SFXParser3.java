@@ -23,6 +23,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.daquexian.chaoli.forum.utils.MyUtils;
+import com.daquexian.chaoli.forum.utils.PostUtils;
 import com.daquexian.chaoli.forum.view.PostActivity;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
@@ -178,24 +179,14 @@ public class SFXParser3 {
 					}
 
 					if (!isImage) {
-						try {
-							final String attUrl = MyUtils.getAttachmentFileUrl(attachment);
 							spannable.replace(attachmentM.start(), attachmentM.end(), attachment.getFilename());
 							spannable.setSpan(new ClickableSpan() {
 								@Override
 								public void onClick(View view) {
-									DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
-									request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, Constants.APP_DIR_NAME + "/" + attachment.getFilename());
-									request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
-									request.allowScanningByMediaScanner();// if you want to be available from media players
-									DownloadManager manager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
-									manager.enqueue(request);
+									MyUtils.downloadAttachment(context, attachment);
 								}
 							}, attachmentM.start(), attachmentM.start() + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 							attachmentM = attachmentPattern.matcher(spannable);
-						} catch (UnsupportedEncodingException e) {
-							Log.w(TAG, "parse: ", e);
-						}
 					}
                     break;
 				}

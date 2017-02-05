@@ -3,7 +3,8 @@
 		  xmlns:android="http://schemas.android.com/apk/res/android">
 
 	<uses-permission android:name="android.permission.INTERNET"/>
-	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/> <!-- for using image as avatar (文档说写权限会附赠读权限，不过还是保险一点吧) -->
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/> <!-- for downloading attachments -->
 
 	<application
 		android:name="com.daquexian.chaoli.forum.ChaoliApplication"

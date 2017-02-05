@@ -8,6 +8,8 @@ import android.support.v7.app.AppCompatDelegate;
 import com.daquexian.chaoli.forum.meta.Constants;
 import com.daquexian.chaoli.forum.meta.NightModeHelper;
 
+import io.github.kbiakov.codeview.classifier.CodeProcessor;
+
 /**
  * Created by jianhao on 16-8-25.
  */
@@ -16,6 +18,8 @@ public class ChaoliApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // train classifier on app start
+        CodeProcessor.init(this);
         ChaoliApplication.appContext = getApplicationContext();
         if (NightModeHelper.isDay()){
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);

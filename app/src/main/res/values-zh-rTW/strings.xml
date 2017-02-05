@@ -171,4 +171,5 @@
     <string name="share_message">分享自超理論壇</string>
     <string name="not_support_temporarily">暫不支持該類型的鏈接，請從瀏覽器打開</string>
     <string name="see_codes_in_original_post">[代碼部分請在原帖中查看]</string>
+    <string name="need_write_permission">新版 app 修改了下載附件的流程，調用下載管理器下載附件，因此需要向外部存儲寫入數據的權限。本應用開源於 GitHub，所以請放心-w-</string>
 </resources>
