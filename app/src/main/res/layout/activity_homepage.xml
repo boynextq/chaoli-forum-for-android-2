@@ -5,6 +5,8 @@
         <variable
             name="viewModel"
             type="com.daquexian.chaoli.forum.viewmodel.HomepageVM"/>
+        <import type="android.text.TextUtils"/>
+        <import type="com.daquexian.chaoli.forum.utils.MyUtils"/>
     </data>
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
@@ -47,7 +49,7 @@
                         android:layout_marginTop="58dp"/>
                     <TextView
                         android:id="@+id/tvSignature"
-                        android:text="@{viewModel.signature ?? @string/this_user_has_not_set_signature}"
+                        android:text="@{TextUtils.isEmpty(viewModel.signature) ? @string/this_user_has_not_set_signature : MyUtils.formatSignature(viewModel.signature)}"
                         android:layout_centerHorizontal="true"
                         android:layout_below="@id/ivAvatar"
                         android:layout_marginTop="10dp"
