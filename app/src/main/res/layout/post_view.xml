@@ -8,6 +8,7 @@
 		<variable
 			name="handler"
 			type="com.daquexian.chaoli.forum.viewmodel.PostActivityVM"/>
+		<import type="android.text.TextUtils"/>
 	</data>
 	<LinearLayout
 		android:layout_width="match_parent"
@@ -57,7 +58,7 @@
 					android:layout_height="wrap_content"/>
 				<TextView
 					android:id="@+id/usernameAndSignature"
-					android:text="@{item.signature == null ? item.username : @string/comma(item.username, item.signature)}"
+					android:text="@{TextUtils.isEmpty(item.signature) ? item.username : @string/comma(item.username, item.signature)}"
 					android:ellipsize="end"
 					android:textSize="16sp"
 					android:layout_marginLeft="15dp"
