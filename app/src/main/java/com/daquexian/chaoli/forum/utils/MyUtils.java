@@ -7,6 +7,8 @@ import android.net.Uri;
 import android.os.Environment;
 import android.widget.Toast;
 
+import com.daquexian.chaoli.forum.ChaoliApplication;
+import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.meta.Constants;
 import com.daquexian.chaoli.forum.model.Post;
 
@@ -25,6 +27,9 @@ import static android.content.Context.DOWNLOAD_SERVICE;
 public class MyUtils {
     @SuppressWarnings("unused")
     private static final String TAG = "MyUtils";
+
+    private static final String quoteRegex = "\\[quote((.|\n)*?)\\[/quote]";
+    private static final String codeRegex = "\\[code]((.|\n)*?)\\[/code]";
 
     /**
      * 针对可能有其他帖子被顶到最上方，导致下一页的主题帖与这一页的主题帖有重合的现象
@@ -102,7 +107,26 @@ public class MyUtils {
         return Constants.ATTACHMENT_IMAGE_URL + attachment.getAttachmentId() + attachment.getSecret();
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static String getAttachmentFileUrl(Post.Attachment attachment) throws UnsupportedEncodingException{
         return "https://chaoli.club/index.php/attachment/" + attachment.getAttachmentId() + "_" + URLEncoder.encode(attachment.getFilename(), "UTF-8");
     }
+
+    /**
+     * 去除引用
+     * @param content API获得的帖子内容
+     * @return 去除引用之后的内容，显示给用户或用于在发帖时避免多重引用
+     */
+    public static String removeQuote(String content) {
+        return content.replaceAll(quoteRegex, "");
+    }
+
+    private static String replaceCode(String content) {
+        return content.replaceAll(codeRegex, ChaoliApplication.getAppContext().getString(R.string.see_codes_in_original_post));
+    }
+
+    public static String formatQuote(String quote) {
+        return removeQuote(replaceCode(quote));
+    }
+
 }

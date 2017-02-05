@@ -12,17 +12,15 @@ import android.widget.LinearLayout;
 
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
-import com.daquexian.chaoli.forum.utils.PostUtils;
+import com.daquexian.chaoli.forum.utils.MyUtils;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * 用于显示帖子中的引用
  * Created by jianhao on 16-8-26.
  */
 public class QuoteView extends LinearLayout {
-    PostContentView mPostContentView;
     OnlineImgTextView mTextView;
     Button mButton;
     Boolean mCollapsed;
@@ -30,7 +28,6 @@ public class QuoteView extends LinearLayout {
 
     private static final String TAG = "QuoteView";
     private static int BG_COLOR ;
-    //private static final int BUTTON_TEXT_SIZE = 10;
 
     public QuoteView(Context context, List<Post.Attachment> attachmentList) {
         super(context);
@@ -77,8 +74,7 @@ public class QuoteView extends LinearLayout {
         });
     }*/
     public void setText(String content) {
-        Pattern codePattern = Pattern.compile("\\[code](.|\n)*\\[/code]");
-        mTextView.setText(PostUtils.formatQuote(content));
+        mTextView.setText(MyUtils.formatQuote(content));
         mTextView.post(new Runnable() {
             @Override
             public void run() {

@@ -29,6 +29,7 @@ import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.network.MyOkHttp;
 import com.daquexian.chaoli.forum.utils.ConversationUtils;
 import com.daquexian.chaoli.forum.utils.LoginUtils;
+import com.daquexian.chaoli.forum.utils.MyUtils;
 import com.daquexian.chaoli.forum.utils.PostUtils;
 import com.daquexian.chaoli.forum.viewmodel.BaseViewModel;
 import com.daquexian.chaoli.forum.viewmodel.PostActivityVM;
@@ -221,7 +222,7 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 		toReply.putExtra("conversationId", mConversationId);
 		toReply.putExtra("postId", post.getPostId());
 		toReply.putExtra("replyTo", post.getUsername());
-		toReply.putExtra("replyMsg", PostUtils.formatQuote(post.getContent()));
+		toReply.putExtra("replyMsg", MyUtils.formatQuote(post.getContent()));
 		startActivityForResult(toReply, REPLY_CODE);
 	}
 
