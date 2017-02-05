@@ -29,6 +29,7 @@ import com.daquexian.chaoli.forum.viewmodel.HistoryFragmentVM;
 import com.daquexian.chaoli.forum.viewmodel.HomepageVM;
 
 /**
+ * Activity for user's homepage
  * Created by daquexian on 16-4-14.
  */
 
@@ -78,6 +79,7 @@ public class HomepageActivity extends BaseActivity implements AppBarLayout.OnOff
         collapsingToolbarLayout.setExpandedTitleGravity(0x01 | 0x50);
         Toolbar toolbar = (Toolbar) findViewById(R.id.tl_custom);
         setSupportActionBar(toolbar);
+        //noinspection ConstantConditions
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {

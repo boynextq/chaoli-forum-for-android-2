@@ -145,10 +145,6 @@ public class HistoryFragment extends Fragment implements IView, SwipyRefreshLayo
         mSwipyRefreshLayout.setEnabled(enabled || bottom);
     }
 
-    public void setDirection(SwipyRefreshLayoutDirection direction){
-        mSwipyRefreshLayout.setDirection(direction);
-    }
-
     @Override
     public void setViewModel(BaseViewModel viewModel) {
         this.viewModel = (HistoryFragmentVM) viewModel;

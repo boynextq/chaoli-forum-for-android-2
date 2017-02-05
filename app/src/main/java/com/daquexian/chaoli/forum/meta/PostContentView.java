@@ -1,11 +1,7 @@
 package com.daquexian.chaoli.forum.meta;
 
-import android.app.DownloadManager;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
-import android.net.Uri;
-import android.os.Environment;
 import android.support.v4.content.ContextCompat;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -24,18 +20,13 @@ import com.bumptech.glide.Glide;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
-import com.daquexian.chaoli.forum.utils.PostUtils;
-import com.google.android.gms.appindexing.Action;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.github.kbiakov.codeview.CodeView;
-
-import static android.content.Context.DOWNLOAD_SERVICE;
 
 /**
  * 包含QuoteView和OnlineImgTextView

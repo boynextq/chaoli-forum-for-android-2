@@ -2,6 +2,7 @@ package com.daquexian.chaoli.forum.meta;
 
 import android.content.res.Resources;
 
+@SuppressWarnings({"unused", "WeakerAccess"})
 public class Constants
 {
 	public static final String APP_NAME = "chaoli";		// for shared preference

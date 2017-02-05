@@ -16,11 +16,9 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.NavigationView;
-import android.support.v4.util.ArrayMap;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.widget.DrawableUtils;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -76,7 +74,6 @@ public class MainActivity extends BaseActivity implements AppBarLayout.OnOffsetC
 
 	MainActivityVM viewModel;
 	MainActivityBinding binding;
-	private ArrayMap<Observable, Observable.OnPropertyChangedCallback> mCallbackMap;
 
 	boolean bottom = true;	//是否滚到底部
 	boolean needTwoClick = false;

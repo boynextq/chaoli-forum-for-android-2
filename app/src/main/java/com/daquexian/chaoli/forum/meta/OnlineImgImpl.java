@@ -1,6 +1,5 @@
 package com.daquexian.chaoli.forum.meta;
 
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -25,8 +24,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import retrofit2.http.HEAD;
 
 /**
  * The class implements almost all method about retrieve images from web

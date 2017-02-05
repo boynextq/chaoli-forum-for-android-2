@@ -36,6 +36,7 @@ import okhttp3.Call;
 import okhttp3.Response;
 
 /**
+ * ViewModel for HistoryFragment
  * Created by jianhao on 16-10-2.
  */
 

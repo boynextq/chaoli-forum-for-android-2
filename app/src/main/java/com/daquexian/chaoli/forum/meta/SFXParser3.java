@@ -1,12 +1,10 @@
 package com.daquexian.chaoli.forum.meta;
 
-import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
-import android.os.Environment;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -23,18 +21,12 @@ import android.util.Log;
 import android.view.View;
 
 import com.daquexian.chaoli.forum.utils.MyUtils;
-import com.daquexian.chaoli.forum.utils.PostUtils;
-import com.daquexian.chaoli.forum.view.PostActivity;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static android.content.Context.DOWNLOAD_SERVICE;
 
 public class SFXParser3 {
 	// Finally, I decide to use this way.
