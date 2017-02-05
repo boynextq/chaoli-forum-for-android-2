@@ -78,15 +78,20 @@ public class SFXParser3 {
 		while (url.find()) {
 			//String[] inner = url.group().split("]", 2);
 			//final String site = inner[0];
-			final String site = url.group(1);
+			String site = url.group(1).toLowerCase();
+			if (!site.startsWith("http://") && !site.startsWith("https://")) {
+				site = "http://" + site;
+			}
+
+			final String finalSite = site;
 			spannable.setSpan(new ClickableSpan() {
 				@Override
 				public void onClick(View widget) {
 					String prefix = "https://chaoli.club/index.php/";
-					if (site.startsWith(prefix)) // TODO: 16-11-16 change it
-						context.startActivity(new Intent(context, PostActivity.class).putExtra("conversationId", Integer.parseInt(site.substring(prefix.length()))));
+					if (finalSite.startsWith(prefix)) // TODO: 16-11-16 change it
+						context.startActivity(new Intent(context, PostActivity.class).putExtra("conversationId", Integer.parseInt(finalSite.substring(prefix.length()))));
 					else {
-						context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(site)));
+						context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalSite)));
 					}
 				}
 			}, url.start(2), url.end(2), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
