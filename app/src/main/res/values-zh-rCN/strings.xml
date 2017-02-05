@@ -172,4 +172,6 @@
 	<string name="not_support_temporarily">暂不支持该类型的链接，请从浏览器打开</string>
 	<string name="see_codes_in_original_post">[代码部分请在原帖中查看]</string>
 	<string name="need_write_permission">新版 app 修改了下载附件的流程，调用下载管理器下载附件，因此需要向外部存储写入数据的权限。本应用开源于 GitHub，所以请放心-w-</string>
+	<string name="see_img_in_original_post">[图片请在原帖中查看]</string>
+	<string name="see_att_in_original_post">[附件请在原帖中查看]</string>
 </resources>

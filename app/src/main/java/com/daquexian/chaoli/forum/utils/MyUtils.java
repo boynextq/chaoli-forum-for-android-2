@@ -30,6 +30,8 @@ public class MyUtils {
 
     private static final String quoteRegex = "\\[quote((.|\n)*?)\\[/quote]";
     private static final String codeRegex = "\\[code]((.|\n)*?)\\[/code]";
+    private static final String imgRegex = "\\[img](.*?)\\[/img]";
+    private static final String attRegex = "\\[attachment:(.*?)]";
 
     /**
      * 针对可能有其他帖子被顶到最上方，导致下一页的主题帖与这一页的主题帖有重合的现象
@@ -121,12 +123,14 @@ public class MyUtils {
         return content.replaceAll(quoteRegex, "");
     }
 
-    private static String replaceCode(String content) {
-        return content.replaceAll(codeRegex, ChaoliApplication.getAppContext().getString(R.string.see_codes_in_original_post));
+    private static String replaceMany(String content) {
+        return content.replaceAll(codeRegex, ChaoliApplication.getAppContext().getString(R.string.see_codes_in_original_post))
+                .replaceAll(imgRegex, ChaoliApplication.getAppContext().getString(R.string.see_img_in_original_post))
+                .replaceAll(attRegex, ChaoliApplication.getAppContext().getString(R.string.see_att_in_original_post));
     }
 
     public static String formatQuote(String quote) {
-        return removeQuote(replaceCode(quote));
+        return removeQuote(replaceMany(quote));
     }
 
 }
