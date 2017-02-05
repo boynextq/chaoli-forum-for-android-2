@@ -19,6 +19,7 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.daquexian.chaoli.forum.model.Post;
+import com.daquexian.chaoli.forum.utils.MyUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -109,9 +110,17 @@ public class PostContentView extends LinearLayout {
 
         SpannableStringBuilder builder = new SpannableStringBuilder();
 
+        boolean isImage = false;
         for (Post.Attachment attachment : attachmentList) {
-            if (attachment.getFilename().endsWith(".jpg") || attachment.getFilename().endsWith(".png")) {
-                String url = Constants.ATTACHMENT_IMAGE_URL + attachment.getAttachmentId() + attachment.getSecret();
+            for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
+                if (attachment.getFilename().endsWith(image_ext)) {
+                    isImage = true;
+                    break;
+                }
+            }
+
+            if (isImage) {
+                String url = MyUtils.getAttachmentImageUrl(attachment);
                 ImageView imageView = new ImageView(mContext);
                 imageView.setMaxWidth(Constants.MAX_IMAGE_WIDTH);
                 imageView.setAdjustViewBounds(true);
@@ -123,7 +132,7 @@ public class PostContentView extends LinearLayout {
                 addView(imageView);
             } else {
                 try {
-                    final String finalUrl = "https://chaoli.club/index.php/attachment/" + attachment.getAttachmentId() + "_" + URLEncoder.encode(attachment.getFilename(), "UTF-8");
+                    final String finalUrl = MyUtils.getAttachmentFileUrl(attachment);
                     int start = builder.length();
                     builder.append(attachment.getFilename());
                     builder.setSpan(new ClickableSpan() {

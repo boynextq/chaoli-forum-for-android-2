@@ -1,10 +1,12 @@
 package com.daquexian.chaoli.forum.meta;
 
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Environment;
 import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -20,6 +22,7 @@ import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.view.View;
 
+import com.daquexian.chaoli.forum.utils.MyUtils;
 import com.daquexian.chaoli.forum.view.PostActivity;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
@@ -29,6 +32,8 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static android.content.Context.DOWNLOAD_SERVICE;
 
 public class SFXParser3 {
 	// Finally, I decide to use this way.
@@ -85,12 +90,7 @@ public class SFXParser3 {
 			spannable.setSpan(new ClickableSpan() {
 				@Override
 				public void onClick(View widget) {
-					/* String prefix = "https://chaoli.club/index.php/";
-					if (finalSite.startsWith(prefix)) // TODO: 16-11-16 change it
-						context.startActivity(new Intent(context, PostActivity.class).putExtra("conversationId", Integer.parseInt(finalSite.substring(prefix.length()))));
-					else {*/
-						context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalSite)));
-					// }
+                    context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalSite)));
 				}
 			}, url.start(2), url.end(2), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 			spannable.replace(url.end(2), url.end(), "");
@@ -165,18 +165,31 @@ public class SFXParser3 {
 
 		Pattern attachmentPattern = Pattern.compile("(?i)\\[attachment:(.*?)]");
 		Matcher attachmentM = attachmentPattern.matcher(spannable);
+		boolean isImage = false;
 		while (attachmentList != null && attachmentM.find()) {
 			for (int j = attachmentList.size() - 1; j >= 0; j--) {
-				Post.Attachment attachment = attachmentList.get(j);
+				final Post.Attachment attachment = attachmentList.get(j);
 				if (attachment.getAttachmentId().equals(attachmentM.group(1))) {
-					if (!(attachment.getFilename().endsWith(".jpg") || attachment.getFilename().endsWith(".png"))) {
+					// skip images
+					for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
+						if (attachment.getFilename().endsWith(image_ext)) {
+							isImage = true;
+						}
+					}
+
+					if (!isImage) {
 						try {
-							final String finalUrl = "https://chaoli.club/index.php/attachment/" + attachment.getAttachmentId() + "_" + URLEncoder.encode(attachment.getFilename(), "UTF-8");
+							final String attUrl = MyUtils.getAttachmentFileUrl(attachment);
 							spannable.replace(attachmentM.start(), attachmentM.end(), attachment.getFilename());
 							spannable.setSpan(new ClickableSpan() {
 								@Override
 								public void onClick(View view) {
-									context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalUrl)));
+									DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
+									request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, Constants.APP_DIR_NAME + "/" + attachment.getFilename());
+									request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
+									request.allowScanningByMediaScanner();// if you want to be available from media players
+									DownloadManager manager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
+									manager.enqueue(request);
 								}
 							}, attachmentM.start(), attachmentM.start() + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 							attachmentM = attachmentPattern.matcher(spannable);
@@ -184,7 +197,7 @@ public class SFXParser3 {
 							Log.w(TAG, "parse: ", e);
 						}
 					}
-					break;
+                    break;
 				}
 			}
 		}

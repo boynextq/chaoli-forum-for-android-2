@@ -17,6 +17,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.daquexian.chaoli.forum.model.Post;
+import com.daquexian.chaoli.forum.utils.MyUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -160,8 +161,10 @@ class OnlineImgImpl {
                 for (int i = mAttachmentList.size() - 1; i >= 0; i--) {
                     Post.Attachment attachment = mAttachmentList.get(i);
                     if (attachment.getAttachmentId().equals(content)) {
-                        if (attachment.getFilename().endsWith(".jpg") || attachment.getFilename().endsWith(".png")) {
-                            url = Constants.ATTACHMENT_IMAGE_URL + attachment.getAttachmentId() + attachment.getSecret();
+                        for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
+                            if (attachment.getFilename().endsWith(image_ext)) {
+                                url = MyUtils.getAttachmentImageUrl(attachment);
+                            }
                         }
                     }
                 }

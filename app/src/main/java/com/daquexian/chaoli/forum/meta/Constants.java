@@ -5,6 +5,7 @@ import android.content.res.Resources;
 public class Constants
 {
 	public static final String APP_NAME = "chaoli";		// for shared preference
+	public static final String APP_DIR_NAME = "ChaoLi";	// for directory where save attachments
 	public static final int paddingLeft = 16;
 	public static final int paddingTop = 16;
 	public static final int paddingRight = 16;
@@ -91,6 +92,8 @@ public class Constants
 	public static final String loginSP = "loginReturn";
 	public static final String loginSPKey = "listJSON";
 	public static final String loginBool = "logged";
+
+	public static final String[] IMAGE_FILE_EXTENSION = {".jpg", ".png", ".gif"};
 
 	public static final String NONE = "none";
 
