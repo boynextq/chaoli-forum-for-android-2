@@ -49,6 +49,8 @@ public class HistoryFragmentVM extends BaseViewModel {
 
     public ObservableList<BusinessHomepageListItem> showingItemList = new ObservableArrayList<>();
 
+    private boolean canLoad = true;
+
     public ObservableBoolean isRefreshing = new ObservableBoolean();
     public ObservableBoolean showProgressDialog = new ObservableBoolean(false);
     public ObservableInt intendedConversationId = new ObservableInt();
@@ -159,6 +161,13 @@ public class HistoryFragmentVM extends BaseViewModel {
                 });
     }
 
+    public void tryToLoadMore() {
+        if (canLoad) {
+            canLoad = false;
+            loadMore();
+        }
+    }
+
     public void loadMore() {
         isRefreshing.set(true);
         Log.d(TAG, "loadMore: " + page);
@@ -172,6 +181,8 @@ public class HistoryFragmentVM extends BaseViewModel {
 
                     @Override
                     public void onResponse(Call call, Response response, String responseStr) throws IOException {
+                        canLoad = true;
+
                         List<BusinessHomepageListItem> listItems = parseItems(responseStr);
 
                         final int listSize = listItems.size();
