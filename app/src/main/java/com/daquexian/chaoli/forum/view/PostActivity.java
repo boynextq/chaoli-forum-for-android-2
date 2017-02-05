@@ -248,7 +248,7 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 		menu.add(Menu.NONE, Menu.NONE, menu_share, R.string.share).setIcon(R.drawable.ic_share_black_24dp);//.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
 		// menu.add(Menu.NONE, Menu.NONE, menu_star, R.string.star).setIcon(R.drawable.ic_menu_star);
 		menu.add(Menu.NONE, Menu.NONE, menu_settings, R.string.settings).setIcon(android.R.drawable.ic_menu_manage);
-		menu.add(Menu.NONE, Menu.NONE, menu_author_only, viewModel.isAuthorOnly() ? R.string.cancel_author_only : R.string.author_only).setIcon(android.R.drawable.ic_menu_view);
+		// menu.add(Menu.NONE, Menu.NONE, menu_author_only, viewModel.isAuthorOnly() ? R.string.cancel_author_only : R.string.author_only).setIcon(android.R.drawable.ic_menu_view);
 		return true;
 	}
 

@@ -38,6 +38,7 @@ public class PostActivityVM extends BaseViewModel {
     private Boolean reversed = false;
     private Boolean preview = true;     //是否是只加载了第一条帖子的状态
     private Boolean canAutoLoad = false;  // 是否可以自动加载
+    private boolean hitBottom = false;
 
     public ObservableInt listPosition = new ObservableInt();
     public ObservableBoolean showToast = new ObservableBoolean(false);
@@ -94,11 +95,12 @@ public class PostActivityVM extends BaseViewModel {
                         List<Post> newPosts = response.body().getPosts();
                         callback.doWhenSuccess(newPosts);
                         removeCircle();
-                        if (newPosts.size() == Constants.POST_PER_PAGE) canAutoLoad = true;
-                        //moveToPosition(firstLoad ? 0 : oldLen);
-                        //isRefreshing.set(false);
-
-                        //PostActivityVM.this.page = page;
+                        if (reversed) {
+                            canAutoLoad = page > 1;
+                        } else {
+                            canAutoLoad = page < (conversation.getReplies() + 1) / Constants.POST_PER_PAGE;
+                        }
+                        // if (newPosts.size() == Constants.POST_PER_PAGE) canAutoLoad = true;
                     }
 
                     @Override
@@ -173,7 +175,8 @@ public class PostActivityVM extends BaseViewModel {
         //direction.set(SwipyRefreshLayoutDirection.BOTH);
         showCircle();
         //postList.clear();
-        maxPage = minPage = reversed ? (int) Math.ceil((conversation.getReplies() + 1) / 20.0) : 1;
+        maxPage = minPage = reversed ? (int) Math.ceil((conversation.getReplies() + 1) / (float) Constants.POST_PER_PAGE) : 1;
+
         getList(maxPage, new SuccessCallback() {
             @Override
             public void doWhenSuccess(List<Post> newPostList) {
@@ -184,7 +187,10 @@ public class PostActivityVM extends BaseViewModel {
                 //if (hasFooterView()) postList.remove(postList.size() - 1);
                 if (reversed) postList.addAll(MyUtils.reverse(newPostList));
                 else postList.addAll(newPostList);
-            //    postList.add(new Post());
+
+                if (postList.size() < 3) {
+                    tryToLoadFromBottom();
+                }
             }
         });
 

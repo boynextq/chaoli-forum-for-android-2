@@ -182,8 +182,7 @@ public class HistoryFragmentVM extends BaseViewModel {
 
                     @Override
                     public void onResponse(Call call, Response response, String responseStr) throws IOException {
-                        canLoad = true;
-
+                        page++;
                         List<BusinessHomepageListItem> listItems = parseItems(responseStr);
 
                         final int listSize = listItems.size();
@@ -192,8 +191,12 @@ public class HistoryFragmentVM extends BaseViewModel {
                             return;
                         }
 
+                        int oldSize = showingItemList.size();
+
                         MyUtils.expandUnique(showingItemList, listItems);
-                        page++;
+
+                        canLoad = oldSize != showingItemList.size();
+
                         addTimeDivider(showingItemList);
                         isRefreshing.set(false);
                     }
