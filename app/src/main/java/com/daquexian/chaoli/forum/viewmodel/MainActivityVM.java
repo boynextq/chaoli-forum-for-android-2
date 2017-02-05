@@ -296,6 +296,7 @@ public class MainActivityVM extends BaseViewModel {
                         return notificationList != null;
                     }
                 }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<NotificationList>() {
                     @Override
                     public void onCompleted() {
