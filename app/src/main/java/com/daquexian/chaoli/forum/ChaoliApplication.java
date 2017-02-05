@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatDelegate;
 
 import com.daquexian.chaoli.forum.meta.Constants;
 import com.daquexian.chaoli.forum.meta.NightModeHelper;
+import com.facebook.stetho.Stetho;
 
 import io.github.kbiakov.codeview.classifier.CodeProcessor;
 
@@ -26,6 +27,7 @@ public class ChaoliApplication extends Application {
         }else {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         }
+        Stetho.initializeWithDefaults(this);
     }
 
     public static Context getAppContext() {
