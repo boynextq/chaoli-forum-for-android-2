@@ -56,7 +56,7 @@ public class SFXParser3 {
 	public static SpannableStringBuilder parse(final Context context, String string, List<Post.Attachment> attachmentList) {
 		final SpannableStringBuilder spannable = new SpannableStringBuilder(string);
 
-		Pattern cPattern = Pattern.compile("(?i)\\[c=(.*?)](.*?)\\[/c]");
+		Pattern cPattern = Pattern.compile("(?i)\\[c=(.*?)]((.|\n)*?)\\[/c]");
 		Matcher c = cPattern.matcher(spannable);
 		while (c.find()) {
 			try {

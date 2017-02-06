@@ -17,6 +17,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.request.animation.GlideAnimation;
+import com.bumptech.glide.request.target.SimpleTarget;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
@@ -118,14 +121,29 @@ public class PostContentView extends LinearLayout {
 
             if (isImage) {
                 String url = MyUtils.getAttachmentImageUrl(attachment);
-                ImageView imageView = new ImageView(mContext);
-                imageView.setMaxWidth(Constants.MAX_IMAGE_WIDTH);
+                final ImageView imageView = new ImageView(mContext);
+
+                LinearLayout.LayoutParams layoutParams = new LayoutParams(Constants.MAX_IMAGE_WIDTH, Constants.MAX_IMAGE_WIDTH / 2);
+                imageView.setLayoutParams(layoutParams);
                 imageView.setAdjustViewBounds(true);
+                // imageView.setScaleType(ImageView.ScaleType.FIT_START);
+                // imageView.setMaxWidth(Constants.MAX_IMAGE_WIDTH);
                 imageView.setPadding(0, 0, 0, 10);
+                Log.d(TAG, "fullContent: " + url);
+                final ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray));
+                imageView.setImageDrawable(colorDrawable);
                 Glide.with(mContext)
                         .load(url)
-                        .placeholder(new ColorDrawable(ContextCompat.getColor(mContext,android.R.color.darker_gray)))
-                        .into(imageView);
+                        .into(new SimpleTarget<GlideDrawable>() {
+                            @Override
+                            public void onResourceReady(GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                                /**
+                                 * adjust the size of ImageView according to image
+                                 */
+                                imageView.setLayoutParams(new LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                                imageView.setImageDrawable(resource);
+                            }
+                        });
                 addView(imageView);
             } else {
                     int start = builder.length();
