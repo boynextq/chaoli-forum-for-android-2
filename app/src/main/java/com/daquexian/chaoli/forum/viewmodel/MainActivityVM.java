@@ -133,13 +133,17 @@ public class MainActivityVM extends BaseViewModel {
                         int oldLen = conversationList.size();
                         Log.d(TAG, "onNext: " + oldLen);
                         List<Conversation> newConversationList = conversationListResult.getResults();
+                        canAutoLoad = true;
                         if (page == 1) {
                             conversationList.clear();
                             conversationList.addAll(newConversationList);
                         } else {
                             MyUtils.expandUnique(conversationList, newConversationList);
+
+                            if (conversationList.size() == oldLen) {
+                                canAutoLoad = false;
+                            }
                         }
-                        canAutoLoad = true;
                         if (refresh) {
                             smoothToFirst.notifyChange();
                         }

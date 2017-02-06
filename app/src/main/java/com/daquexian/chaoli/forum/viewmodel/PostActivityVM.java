@@ -98,7 +98,8 @@ public class PostActivityVM extends BaseViewModel {
                         if (reversed) {
                             canAutoLoad = page > 1;
                         } else {
-                            canAutoLoad = page < (conversation.getReplies() + 1) / Constants.POST_PER_PAGE;
+                            final int postNum = conversation.getReplies() + 1;
+                            canAutoLoad = page < (postNum + (Constants.POST_PER_PAGE - 1)) / Constants.POST_PER_PAGE;
                         }
                         // if (newPosts.size() == Constants.POST_PER_PAGE) canAutoLoad = true;
                     }
