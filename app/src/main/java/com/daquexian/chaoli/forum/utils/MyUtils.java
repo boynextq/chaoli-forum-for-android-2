@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
+import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.CoordinatorLayout;
 import android.widget.Toast;
 
 import com.daquexian.chaoli.forum.ChaoliApplication;
@@ -102,6 +104,15 @@ public class MyUtils {
         } catch (UnsupportedEncodingException e) {
             // say bye-bye to your poor phone
             Toast.makeText(context, "say bye-bye to your poor phone", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public static void setToolbarOffset(CoordinatorLayout coordinatorLayout, AppBarLayout appBarLayout, int offset) {
+        CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) appBarLayout.getLayoutParams();
+        AppBarLayout.Behavior behavior = (AppBarLayout.Behavior) layoutParams.getBehavior();
+        if (behavior != null) {
+            behavior.setTopAndBottomOffset(offset);
+            behavior.onNestedPreScroll(coordinatorLayout, appBarLayout, null, 0, 1, new int[2]);
         }
     }
 

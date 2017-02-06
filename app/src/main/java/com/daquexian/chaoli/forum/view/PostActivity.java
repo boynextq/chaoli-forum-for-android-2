@@ -9,6 +9,7 @@ import android.databinding.DataBindingUtil;
 import android.databinding.Observable;
 import android.os.Bundle;
 import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -235,8 +236,8 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 		binding.photoView.setImageDrawable(viewModel.clickedImageView.getDrawable());
 		binding.photoView.setVisibility(View.VISIBLE);
 		binding.photoView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
-		mToolbarOffset = getSupportActionBar().getHideOffset();
-		getSupportActionBar().hide();
+		mToolbarOffset = binding.appbar.getOffset();
+		appBarLayout.setExpanded(false, false);
 		reply.hide();
 		binding.photoView.setOnPhotoTapListener(new PhotoViewAttacher.OnPhotoTapListener() {
 			@Override
@@ -255,8 +256,8 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 	private void hidePhotoView() {
 		binding.photoView.setVisibility(View.GONE);
 		binding.photoView.setSystemUiVisibility(0);
-		getSupportActionBar().setHideOffset(mToolbarOffset);
-		getSupportActionBar().show();
+		MyUtils.setToolbarOffset(binding.cl, binding.appbar, mToolbarOffset);
+		reply.show();
 		mShowPhotoView = false;
 	}
 

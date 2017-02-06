@@ -53,11 +53,15 @@ public class SFXParser3 {
 			R.drawable.emoticons__0001_50, R.drawable.asonwwolf_smile, R.drawable.asonwwolf_laugh, R.drawable.asonwwolf_upset, R.drawable.asonwwolf_tear,
 			R.drawable.asonwwolf_worry, R.drawable.asonwwolf_shock, R.drawable.asonwwolf_amuse};
 
-	public static String[] TAGS = {"[center]", "[/center]", "[h]", "[/h]", "[s]", "[/s]", "[b]", "[/b]",
-			"[i]", "[/i]"};
+	private static String[] TAGS = {"(?i)\\[center]", "(?i)\\[/center]", "(?i)\\[h]", "(?i)\\[/h]", "(?i)\\[s]", "(?i)\\[/s]", "(?i)\\[b]", "(?i)\\[/b]",
+			"(?i)\\[i]", "(?i)\\[/i]", "(?i)\\[c=.{3,6}]", "(?i)\\[/c]", "(?i)\\[curtain]", "(?i)\\[/curtain]"};
 
+	/**
+	 * remove remaining tags (they indicate resolve error)
+	 * plan to refactor the code to avoid these error
+     */
 	public static SpannableStringBuilder removeTags(SpannableStringBuilder builder) {
-		/* for (String tag : TAGS) {
+		for (String tag : TAGS) {
 			Pattern pattern = Pattern.compile(tag);
 			Matcher matcher = pattern.matcher(builder);
 			while (matcher.find()) {
@@ -65,7 +69,6 @@ public class SFXParser3 {
 				matcher = pattern.matcher(builder);
 			}
 		}
-		return builder; */
 		return builder;
 	}
 

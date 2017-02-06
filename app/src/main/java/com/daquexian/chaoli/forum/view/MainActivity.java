@@ -34,6 +34,7 @@ import com.daquexian.chaoli.forum.meta.Constants;
 import com.daquexian.chaoli.forum.meta.NightModeHelper;
 import com.daquexian.chaoli.forum.model.Conversation;
 import com.daquexian.chaoli.forum.utils.DataBindingUtils;
+import com.daquexian.chaoli.forum.utils.MyUtils;
 import com.daquexian.chaoli.forum.viewmodel.BaseViewModel;
 import com.daquexian.chaoli.forum.viewmodel.MainActivityVM;
 import com.google.android.gms.appindexing.Action;
@@ -251,13 +252,9 @@ public class MainActivity extends BaseActivity implements AppBarLayout.OnOffsetC
 		swipyRefreshLayout = binding.conversationListRefreshLayout;
 
 		if (NightModeHelper.getViewModel() != null) {
-			CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) binding.appbar.getLayoutParams();
-			AppBarLayout.Behavior behavior = (AppBarLayout.Behavior) layoutParams.getBehavior();
-			if (behavior != null) {
-				behavior.setTopAndBottomOffset(savedInstanceState.getInt(TOOLBAR_OFFSET));
-				behavior.onNestedPreScroll(binding.cl, binding.appbar, null, 0, 1, new int[2]);
-			}
+			MyUtils.setToolbarOffset(binding.cl, binding.appbar, savedInstanceState.getInt(TOOLBAR_OFFSET));
 		}
+
 		binding.appbar.addOnOffsetChangedListener(this);
 		binding.conversationList.addOnScrollListener(new RecyclerView.OnScrollListener() {
 			@Override

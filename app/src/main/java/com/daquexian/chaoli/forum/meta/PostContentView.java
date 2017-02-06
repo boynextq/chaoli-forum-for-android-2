@@ -18,8 +18,8 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
@@ -99,22 +99,31 @@ public class PostContentView extends LinearLayout {
         fullContent(content, attachmentList);
     }
 
+    /**
+     * see {@link #setPost(Post)}
+     */
     private void LaTeX2(String str) {
         str = removeTags(str);
-        List<OnlineImgUtils.Formula> formulaList = OnlineImgUtils.getAllFormulas(str, mAttachmentList);
-        formulaList.add(new OnlineImgUtils.Formula(str.length(), str.length(), "", "", OnlineImgUtils.Formula.TYPE_IMG));
+        SpannableStringBuilder builder = new SpannableStringBuilder(str);
+        builder = SFXParser3.removeTags(SFXParser3.parse(mContext, builder, mAttachmentList));
+        List<OnlineImgUtils.Formula> formulaList = OnlineImgUtils.getAll(builder, mAttachmentList);
+        formulaList.add(new OnlineImgUtils.Formula(builder.length(), builder.length(), "", "", OnlineImgUtils.Formula.TYPE_IMG));
 
         int beginIndex = 0, endIndex;
-        for (int i = 0; i < formulaList.size() && beginIndex < str.length(); i++) {
+        for (int i = 0; i < formulaList.size() && beginIndex < builder.length(); i++) {
             OnlineImgUtils.Formula formula = formulaList.get(i);
             endIndex = formula.start;
             if (formula.type == Formula.TYPE_ATT || formula.type == Formula.TYPE_IMG) {
                 TextView textView = new TextView(mContext);
-                SpannableStringBuilder builder = new SpannableStringBuilder(str, beginIndex, endIndex);
-                builder = SFXParser3.removeTags(SFXParser3.parse(mContext, builder, mAttachmentList));
-                textView.setText(builder);
+                final CharSequence subSequence = builder.subSequence(beginIndex, endIndex);
+                final SpannableStringBuilder subBuilder = new SpannableStringBuilder(subSequence);
+                textView.setText(subSequence);
+                /**
+                 * make links clickable
+                 */
+                textView.setMovementMethod(LinkMovementMethod.getInstance());
                 addView(textView);
-                OnlineImgUtils.retrieveFormulaOnlineImg(OnlineImgUtils.formulasBetween(formulaList, beginIndex, endIndex), textView, builder, 0, beginIndex);
+                OnlineImgUtils.retrieveFormulaOnlineImg(OnlineImgUtils.formulasBetween(formulaList, beginIndex, endIndex), textView, subBuilder, 0, beginIndex);
                 beginIndex = formula.end + 1;
 
                 if (formula.url.equals("")) {
@@ -126,22 +135,23 @@ public class PostContentView extends LinearLayout {
                 LinearLayout.LayoutParams layoutParams = new LayoutParams(Constants.MAX_IMAGE_WIDTH, Constants.MAX_IMAGE_WIDTH / 2);
                 imageView.setLayoutParams(layoutParams);
                 imageView.setAdjustViewBounds(true);
-                // imageView.setScaleType(ImageView.ScaleType.FIT_START);
-                // imageView.setMaxWidth(Constants.MAX_IMAGE_WIDTH);
                 imageView.setPadding(0, 0, 0, 10);
                 Log.d(TAG, "fullContent: " + formula.url);
-                final ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray));
-                imageView.setImageDrawable(colorDrawable);
                 Glide.with(mContext)
                         .load(formula.url)
-                        .into(new SimpleTarget<GlideDrawable>() {
+                        .placeholder(new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray)))
+                        .listener(new RequestListener<String, GlideDrawable>() {
                             @Override
-                            public void onResourceReady(final GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                            public boolean onException(Exception e, String model, Target<GlideDrawable> target, boolean isFirstResource) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onResourceReady(GlideDrawable resource, String model, Target<GlideDrawable> target, boolean isFromMemoryCache, boolean isFirstResource) {
                                 /**
                                  * adjust the size of ImageView according to image
                                  */
                                 imageView.setLayoutParams(new LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-                                imageView.setImageDrawable(resource);
 
                                 imageView.setOnClickListener(new OnClickListener() {
                                     @Override
@@ -151,19 +161,13 @@ public class PostContentView extends LinearLayout {
                                         }
                                     }
                                 });
+                                return false;
                             }
-                        });
+                        })
+                        .into(imageView);
                 addView(imageView);
             }
         }
-        /* if (beginIndex < str.length()) {
-            TextView textView = new TextView(mContext);
-            SpannableStringBuilder builder = new SpannableStringBuilder(str, beginIndex, str.length());
-            builder = SFXParser3.parse(mContext, builder, mAttachmentList);
-            textView.setText(builder);
-            addView(textView);
-            OnlineImgUtils.retrieveFormulaOnlineImg(formulaList, textView, builder, 0);
-        } */
     }
 
     /**
@@ -201,17 +205,20 @@ public class PostContentView extends LinearLayout {
                 LinearLayout.LayoutParams layoutParams = new LayoutParams(Constants.MAX_IMAGE_WIDTH, Constants.MAX_IMAGE_WIDTH / 2);
                 imageView.setLayoutParams(layoutParams);
                 imageView.setAdjustViewBounds(true);
-                // imageView.setScaleType(ImageView.ScaleType.FIT_START);
-                // imageView.setMaxWidth(Constants.MAX_IMAGE_WIDTH);
                 imageView.setPadding(0, 0, 0, 10);
                 Log.d(TAG, "fullContent: " + url);
-                final ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray));
-                imageView.setImageDrawable(colorDrawable);
+
                 Glide.with(mContext)
                         .load(url)
-                        .into(new SimpleTarget<GlideDrawable>() {
+                        .placeholder(new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray)))
+                        .listener(new RequestListener<String, GlideDrawable>() {
                             @Override
-                            public void onResourceReady(GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                            public boolean onException(Exception e, String model, Target<GlideDrawable> target, boolean isFirstResource) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean onResourceReady(GlideDrawable resource, String model, Target<GlideDrawable> target, boolean isFromMemoryCache, boolean isFirstResource) {
                                 /**
                                  * adjust the size of ImageView according to image
                                  */
@@ -226,8 +233,10 @@ public class PostContentView extends LinearLayout {
                                         }
                                     }
                                 });
+                                return false;
                             }
-                        });
+                        })
+                        .into(imageView);
                 addView(imageView);
             } else {
                     int start = builder.length();

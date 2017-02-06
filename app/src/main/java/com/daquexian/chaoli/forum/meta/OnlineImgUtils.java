@@ -38,93 +38,81 @@ public class OnlineImgUtils {
     private static final Pattern PATTERN1 = Pattern.compile("(?i)\\$\\$?((.|\\n)+?)\\$\\$?");
     private static final Pattern PATTERN2 = Pattern.compile("(?i)\\\\[(\\[]((.|\\n)*?)\\\\[\\])]");
     private static final Pattern PATTERN3 = Pattern.compile("(?i)\\[tex]((.|\\n)*?)\\[/tex]");
-    private static final Pattern IMG_PATTERN = Pattern.compile("(?i)\\[img](.*?)\\[/img]");
-    private static final Pattern ATTACHMENT_PATTERN = Pattern.compile("(?i)\\[attachment:(.*?)]");
     private static final Pattern PATTERN4 = Pattern.compile("(?i)\\\\begin\\{.*?\\}(.|\\n)*?\\\\end\\{.*?\\}");
     private static final Pattern PATTERN5 = Pattern.compile("(?i)\\$\\$(.+?)\\$\\$");
+    private static final Pattern IMG_PATTERN = Pattern.compile("(?i)\\[img](.*?)\\[/img]");
+    private static final Pattern ATTACHMENT_PATTERN = Pattern.compile("(?i)\\[attachment:(.*?)]");
+    private static final Pattern[] PATTERNS = {PATTERN1, PATTERN2, PATTERN3, PATTERN4, PATTERN5, IMG_PATTERN, ATTACHMENT_PATTERN};
+    private static final int[] indexInRegex = {1, 1, 1, 0, 1, 1, 1};
+
+    public static List<Formula> getAll(CharSequence charSequence, List<Post.Attachment> attachmentList) {
+        return getSpecific(charSequence, attachmentList, new int[]{0, 1, 2, 3, 4, 5, 6});
+    }
+
+    public static List<Formula> getLaTeXFormula(CharSequence charSequence, List<Post.Attachment> attachmentList) {
+        return getSpecific(charSequence, attachmentList, new int[]{0, 1, 2, 3, 4});
+    }
+
+    public static List<Formula> getImgAndAtt(CharSequence charSequence, List<Post.Attachment> attachmentList) {
+        return getSpecific(charSequence, attachmentList, new int[]{5, 6});
+    }
 
     /**
-     * 获取所有起始位置和终止位置不相交的公式
-     * @param string 包含公式的字符串
+     * @param charSequence 包含公式的字符串
      * @return 公式List
      */
-    public static List<Formula> getAllFormulas(String string, List<Post.Attachment> attachmentList) {
-        Matcher m1 = PATTERN1.matcher(string);
-        Matcher m2 = PATTERN2.matcher(string);
-        Matcher m3 = PATTERN3.matcher(string);
-        Matcher m4 = PATTERN4.matcher(string);
-        Matcher m5 = PATTERN5.matcher(string);
-        Matcher imgMatcher = IMG_PATTERN.matcher(string);
-        Matcher attachmentMatcher = ATTACHMENT_PATTERN.matcher(string);
+    private static List<Formula> getSpecific(CharSequence charSequence, List<Post.Attachment> attachmentList, int[] indexs) {
+        Matcher[] matchers = new Matcher[indexs.length];
+        int[] indexInRegexLocal = new int[indexs.length];
+        for (int i = 0; i < indexs.length; i++) {
+            int index = indexs[i];
+            matchers[i] = PATTERNS[index].matcher(charSequence);
+            indexInRegexLocal[i] = indexInRegex[index];
+        }
 
         List<Formula> formulaList = new ArrayList<>();
-        String content;
-        int type;
 
-        // TODO: 16-10-22 replace it with a loop
-        Boolean flag1 = false, flag2 = false, flag3 = false, flag4 = false, flag5 = false, flagImg = false, flagAttachment = false;
-        while ((flagAttachment = attachmentMatcher.find()) || (flagImg = imgMatcher.find()) || (flag1 = m1.find()) || (flag2 = m2.find()) || (flag3 = m3.find())
-                || (flag4 = m4.find()) || (flag5 = m5.find())) {
+        int[] types = {Formula.TYPE_1, Formula.TYPE_2, Formula.TYPE_3, Formula.TYPE_4, Formula.TYPE_5, Formula.TYPE_IMG, Formula.TYPE_ATT};
+
+        for (int i = 0; i < matchers.length; i++) {
+            Matcher matcher = matchers[i];
+            int index = indexInRegexLocal[i];
+
             int start, end;
-            if (flagAttachment) {
-                start = attachmentMatcher.start();
-                end = attachmentMatcher.end();
-                content = attachmentMatcher.group(1);
-                type = Formula.TYPE_ATT;
-            } else if (flagImg) {
-                start = imgMatcher.start();
-                end = imgMatcher.end();
-                content = imgMatcher.group(1);
-                type = Formula.TYPE_IMG;
-            } else if (flag5) {
-                start = m5.start();
-                end = m5.end();
-                content = m5.group(1);
-                type = Formula.TYPE_5;
-            } else if (flag4) {
-                start = m4.start();
-                end = m4.end();
-                content = m4.group(0);
-                type = Formula.TYPE_4;
-            } else if (flag3) {
-                start = m3.start();
-                end = m3.end();
-                content = m3.group(1);
-                type = Formula.TYPE_3;
-            } else if (flag2) {
-                start = m2.start();
-                end = m2.end();
-                content = m2.group(1);//.replaceAll("[ \\t\\r\\n]", "");
-                type = Formula.TYPE_2;
-            } else {
-                start = m1.start();
-                end = m1.end();
-                content = m1.group(1);
-                type = Formula.TYPE_1;
-            }
-            String url = "";
-            if (flagImg) {
-                url = content;
-            } else if (flagAttachment) {
-                for (int i = attachmentList.size() - 1; i >= 0; i--) {
-                    Post.Attachment attachment = attachmentList.get(i);
-                    if (attachment.getAttachmentId().equals(content)) {
-                        for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
-                            if (attachment.getFilename().endsWith(image_ext)) {
-                                url = MyUtils.getAttachmentImageUrl(attachment);
+            String content, url;
+            int type = types[i];
+
+            while (matcher.find()) {
+                url = "";
+                start = matcher.start();
+                end = matcher.end();
+                content = matcher.group(index);
+
+                if (type == Formula.TYPE_IMG) {
+                    url = content;
+                } else if (type == Formula.TYPE_ATT) {
+                    for (int j = attachmentList.size() - 1; j >= 0; j--) {
+                        Post.Attachment attachment = attachmentList.get(j);
+                        if (attachment.getAttachmentId().equals(content)) {
+                            for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
+                                if (attachment.getFilename().endsWith(image_ext)) {
+                                    url = MyUtils.getAttachmentImageUrl(attachment);
+                                }
                             }
                         }
                     }
+                } else {
+                    url = SITE + content;
                 }
-            } else {
-                url = SITE + content;
+                formulaList.add(new Formula(start, end, content, url, type));
             }
-            formulaList.add(new Formula(start, end, content, url, type));
         }
+
         removeOverlappingFormula(formulaList);
         Collections.sort(formulaList);
         return formulaList;
     }
+
     /**
      * 去掉相交的区间
      * @param formulaList 每个LaTeX公式的起始下标和终止下标组成的List
