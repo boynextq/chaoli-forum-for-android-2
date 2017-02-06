@@ -36,6 +36,8 @@ import com.daquexian.chaoli.forum.viewmodel.PostActivityVM;
 import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayout;
 import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayoutDirection;
 
+import uk.co.senab.photoview.PhotoViewAttacher;
+
 public class PostActivity extends BaseActivity implements ConversationUtils.IgnoreAndStarConversationObserver, MyAppBarLayout.OnStateChangeListener, AppBarLayout.OnOffsetChangedListener {
 	public static final String TAG = "PostActivity";
 
@@ -53,6 +55,9 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 	int mConversationId;
 	String mTitle;
 	int mPage;
+
+	boolean mShowPhotoView;
+	int mToolbarOffset;
 
 	RecyclerView postListRv;
 	SwipyRefreshLayout swipyRefreshLayout;
@@ -215,6 +220,44 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 				quote(PostActivity.this.viewModel.clickedPost);
 			}
 		});
+
+		this.viewModel.imgClicked.addOnPropertyChangedCallback(new Observable.OnPropertyChangedCallback() {
+			@Override
+			public void onPropertyChanged(Observable observable, int i) {
+				showPhotoView();
+			}
+		});
+	}
+
+	@SuppressWarnings("ConstantConditions")
+	private void showPhotoView() {
+		mShowPhotoView = true;
+		binding.photoView.setImageDrawable(viewModel.clickedImageView.getDrawable());
+		binding.photoView.setVisibility(View.VISIBLE);
+		binding.photoView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
+		mToolbarOffset = getSupportActionBar().getHideOffset();
+		getSupportActionBar().hide();
+		reply.hide();
+		binding.photoView.setOnPhotoTapListener(new PhotoViewAttacher.OnPhotoTapListener() {
+			@Override
+			public void onPhotoTap(View view, float x, float y) {
+
+			}
+
+			@Override
+			public void onOutsidePhotoTap() {
+				hidePhotoView();
+			}
+		});
+	}
+
+	@SuppressWarnings("ConstantConditions")
+	private void hidePhotoView() {
+		binding.photoView.setVisibility(View.GONE);
+		binding.photoView.setSystemUiVisibility(0);
+		getSupportActionBar().setHideOffset(mToolbarOffset);
+		getSupportActionBar().show();
+		mShowPhotoView = false;
 	}
 
 	private void quote(Post post) {
@@ -233,6 +276,15 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 			if (resultCode == RESULT_OK) {
 				viewModel.replyComplete();
 			}
+		}
+	}
+
+	@Override
+	public void onBackPressed() {
+		if (mShowPhotoView) {
+			hidePhotoView();
+		} else {
+			super.onBackPressed();
 		}
 	}
 

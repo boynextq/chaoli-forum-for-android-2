@@ -14,4 +14,9 @@ public class PostContentViewBA {
     public static void setPost(PostContentView postContentView, Post post) {
         postContentView.setPost(post);
     }
+
+    @BindingAdapter("app:listener")
+    public static void setListener(PostContentView postContentView, PostContentView.OnImgClickListener onImgClickListener) {
+        postContentView.setOnImgClickListener(onImgClickListener);
+    }
 }

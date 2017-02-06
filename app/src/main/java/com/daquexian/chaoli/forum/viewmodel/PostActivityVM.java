@@ -5,11 +5,13 @@ import android.databinding.ObservableBoolean;
 import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
 import android.util.Log;
+import android.widget.ImageView;
 
 import com.daquexian.chaoli.forum.ChaoliApplication;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.binding.PostLayoutSelector;
 import com.daquexian.chaoli.forum.meta.Constants;
+import com.daquexian.chaoli.forum.meta.PostContentView;
 import com.daquexian.chaoli.forum.model.Conversation;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.model.PostListResult;
@@ -23,7 +25,7 @@ import java.util.List;
  * Created by jianhao on 16-9-21.
  */
 
-public class PostActivityVM extends BaseViewModel {
+public class PostActivityVM extends BaseViewModel implements PostContentView.OnImgClickListener {
     public Conversation conversation;
     public int conversationId;
     public String title;
@@ -48,7 +50,9 @@ public class PostActivityVM extends BaseViewModel {
     public ObservableBoolean goToReply = new ObservableBoolean(false);
     public ObservableBoolean goToQuote = new ObservableBoolean();
     public ObservableBoolean goToHomepage = new ObservableBoolean(false);
+    public ObservableBoolean imgClicked = new ObservableBoolean(false);
     public Post clickedPost;
+    public ImageView clickedImageView;
 
     private static final String TAG = "PostActivityVM";
 
@@ -329,6 +333,12 @@ public class PostActivityVM extends BaseViewModel {
 
     public void setAuthorOnly(boolean authorOnly) {
         isAuthorOnly = authorOnly;
+    }
+
+    @Override
+    public void onImgClick(ImageView imageView) {
+        clickedImageView = imageView;
+        imgClicked.notifyChange();
     }
 
     private interface SuccessCallback {

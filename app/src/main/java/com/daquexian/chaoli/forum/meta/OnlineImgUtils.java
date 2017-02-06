@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.util.ArrayMap;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -28,18 +27,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The class implements almost all method about retrieve images from web
- * Created by jianhao on 16-10-22.
+ * Created by daquexian on 17-2-6.
  */
 
-class OnlineImgImpl {
-    List<Post.Attachment> mAttachmentList;
-    private List<Formula> mFormulaList;
-    private ArrayMap<Formula, ImageSpan> placeHolders = new ArrayMap<>();
-
-    private OnCompleteListener mListener;
-
-    private IOnlineImgView mView;
+public class OnlineImgUtils {
+    private static final String TAG = "OnlineImgUtils";
 
     private static final String SITE = "http://latex.codecogs.com/gif.latex?\\dpi{220}";
 
@@ -51,55 +43,12 @@ class OnlineImgImpl {
     private static final Pattern PATTERN4 = Pattern.compile("(?i)\\\\begin\\{.*?\\}(.|\\n)*?\\\\end\\{.*?\\}");
     private static final Pattern PATTERN5 = Pattern.compile("(?i)\\$\\$(.+?)\\$\\$");
 
-    private static final String TAG = "OnlineImgImpl";
-
-    OnlineImgImpl(IOnlineImgView view) {
-        //maxWidthPixels = (int) (Resources.getSystem().getDisplayMetrics().widthPixels * 0.8);
-        mView = view;
-    }
-
-    public void setText(String text){
-        text = removeNewlineInFormula(text);
-        text += '\n';
-
-        SpannableStringBuilder builder = SFXParser3.parse(((View) mView).getContext(), text, mAttachmentList);
-
-        if (mView instanceof EditText) {
-            EditText editText = (EditText) mView;
-            int selectionStart = editText.getSelectionStart();
-            int selectionEnd = editText.getSelectionEnd();
-            mView.setText(builder);
-            editText.setSelection(selectionStart, selectionEnd);
-        } else {
-            mView.setText(builder);
-        }
-
-        retrieveOnlineImg(builder);
-    }
-
-    public void setView(IOnlineImgView view) {
-        mView = view;
-    }
-
-    /**
-     * 此操作是异步的，注意
-     * @param builder 包含公式的文本，以SpannableStringBuilder身份传入
-     */
-    private void retrieveOnlineImg(final SpannableStringBuilder builder) {
-        String text = builder.toString();
-
-        mFormulaList = getAllFormulas(text);
-
-        showPlaceHolder(builder);
-        retrieveFormulaOnlineImg(builder, 0);
-    }
-
     /**
      * 获取所有起始位置和终止位置不相交的公式
      * @param string 包含公式的字符串
      * @return 公式List
      */
-    private List<Formula> getAllFormulas(String string) {
+    public static List<Formula> getAllFormulas(String string, List<Post.Attachment> attachmentList) {
         Matcher m1 = PATTERN1.matcher(string);
         Matcher m2 = PATTERN2.matcher(string);
         Matcher m3 = PATTERN3.matcher(string);
@@ -157,8 +106,8 @@ class OnlineImgImpl {
             if (flagImg) {
                 url = content;
             } else if (flagAttachment) {
-                for (int i = mAttachmentList.size() - 1; i >= 0; i--) {
-                    Post.Attachment attachment = mAttachmentList.get(i);
+                for (int i = attachmentList.size() - 1; i >= 0; i--) {
+                    Post.Attachment attachment = attachmentList.get(i);
                     if (attachment.getAttachmentId().equals(content)) {
                         for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
                             if (attachment.getFilename().endsWith(image_ext)) {
@@ -173,105 +122,14 @@ class OnlineImgImpl {
             formulaList.add(new Formula(start, end, content, url, type));
         }
         removeOverlappingFormula(formulaList);
+        Collections.sort(formulaList);
         return formulaList;
     }
-
-    /**
-     * show placeholder on attachment images
-     * @param builder SpannableStringBuilder in which placeholder shows
-     */
-    private void showPlaceHolder(final SpannableStringBuilder builder) {
-        for (Formula formula : mFormulaList) {
-            Log.d(TAG, "showPlaceHolder: " + formula.content + ", " + formula.type);
-            if (formula.type == Formula.TYPE_ATT || formula.type == Formula.TYPE_IMG) {
-                final ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(((View) mView).getContext(), android.R.color.darker_gray));
-                colorDrawable.setBounds(0, 0, 600, 300);
-                final ImageSpan imageSpan = new ImageSpan(colorDrawable);
-                placeHolders.put(formula, imageSpan);
-                builder.setSpan(imageSpan, formula.start, formula.end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-            }
-        }
-        mView.setText(builder);
-    }
-
-    /**
-     * 获取特定的公式渲染出的图片，结束时会调用回调函数（假如存在listener的话）
-     * @param builder 包含公式的builder
-     * @param i 公式在mFormulaList中的下标
-     */
-    private void retrieveFormulaOnlineImg(final SpannableStringBuilder builder, final int i) {
-        if (i >= mFormulaList.size()) {
-            if (mListener != null) {
-                mListener.onComplete(builder);
-            }
-            return;
-        }
-        Spannable spannable;
-        final Formula formula = mFormulaList.get(i);
-        Log.d(TAG, "retrieveFormulaOnlineImg: " + formula.url);
-        final int finalType = formula.type;
-        final int finalStart = formula.start;
-        final int finalEnd = formula.end;
-        Glide.with(((View)mView).getContext())
-                .load(formula.url)
-                .asBitmap()
-                .placeholder(new ColorDrawable(ContextCompat.getColor(((View)mView).getContext(),android.R.color.darker_gray)))
-                .into(new SimpleTarget<Bitmap>()
-        {
-            @Override
-            public void onResourceReady(final Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation)
-            {
-                final int HEIGHT_THRESHOLD = 60;
-                // post to avoid ConcurrentModificationException, from https://github.com/bumptech/glide/issues/375
-                ((View)mView).post(new Runnable() {
-                    @Override
-                    public void run() {
-                        Bitmap newImage;
-                        if (resource.getWidth() > Constants.MAX_IMAGE_WIDTH) {
-                            int newHeight = resource.getHeight() * Constants.MAX_IMAGE_WIDTH / resource.getWidth();
-                            newImage = Bitmap.createScaledBitmap(resource, Constants.MAX_IMAGE_WIDTH, newHeight, true);
-                        } else {
-                            newImage = resource;
-                        }
-
-                        if(finalType == Formula.TYPE_ATT || finalType == Formula.TYPE_IMG || newImage.getHeight() > HEIGHT_THRESHOLD) {
-                            if (finalType == Formula.TYPE_ATT || finalType == Formula.TYPE_IMG) {
-                                builder.removeSpan(placeHolders.get(formula));
-                                placeHolders.remove(formula);
-                            }
-                            builder.setSpan(new ImageSpan(((View)mView).getContext(), newImage), finalStart, finalEnd, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                        } else {
-                            builder.setSpan(new CenteredImageSpan(((View)mView).getContext(), resource), finalStart, finalEnd, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                        }
-
-                        if (mView instanceof EditText) {
-                            EditText editText = (EditText) mView;
-                            int selectionStart = editText.getSelectionStart();
-                            int selectionEnd = editText.getSelectionEnd();
-                            mView.setText(builder);
-                            editText.setSelection(selectionStart, selectionEnd);
-                        } else {
-                            mView.setText(builder);
-                        }
-                        retrieveFormulaOnlineImg(builder, i + 1);
-                    }
-                });
-            }
-            @Override
-            public void onLoadFailed(Exception e, Drawable errorDrawable) {
-                super.onLoadFailed(e, errorDrawable);
-                if (e != null) e.printStackTrace();
-                retrieveFormulaOnlineImg(builder, i + 1);
-            }
-
-        });
-    }
-
     /**
      * 去掉相交的区间
      * @param formulaList 每个LaTeX公式的起始下标和终止下标组成的List
      */
-    private void removeOverlappingFormula(List<Formula> formulaList) {
+    public static void removeOverlappingFormula(List<Formula> formulaList) {
         Collections.sort(formulaList, new Comparator<Formula>() {
             @Override
             public int compare(Formula p1, Formula p2) {
@@ -289,7 +147,7 @@ class OnlineImgImpl {
         }
     }
 
-    private String removeNewlineInFormula(String str){
+    public static String removeNewlineInFormula(String str){
         Matcher m1 = PATTERN1.matcher(str);
         Matcher m2 = PATTERN2.matcher(str);
         Matcher m3 = PATTERN3.matcher(str);
@@ -310,16 +168,101 @@ class OnlineImgImpl {
         return str;
     }
 
+    /**
+     * 获取特定的公式渲染出的图片，结束时会调用回调函数（假如存在listener的话）
+     * @param builder 包含公式的builder
+     * @param i 公式在mFormulaList中的下标
+     * @param start index in full text of first char in builder, use for adjust the beginning and ending of formula to fit with builder
+     */
+    public static void retrieveFormulaOnlineImg(final List<Formula> formulaList, final TextView view, final SpannableStringBuilder builder, final int i, final int start) {
+        if (i >= formulaList.size()) {
+            return;
+        }
+        final Formula formula = formulaList.get(i);
+        Log.d(TAG, "retrieveFormulaOnlineImg: " + formula.url);
+        final int finalType = formula.type;
+        final int finalStart = formula.start;
+        final int finalEnd = formula.end;
+        Glide.with(((View)view).getContext())
+                .load(formula.url)
+                .asBitmap()
+                .placeholder(new ColorDrawable(ContextCompat.getColor(((View)view).getContext(),android.R.color.darker_gray)))
+                .into(new SimpleTarget<Bitmap>()
+                {
+                    @Override
+                    public void onResourceReady(final Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation)
+                    {
+                        final int HEIGHT_THRESHOLD = 60;
+                        // post to avoid ConcurrentModificationException, from https://github.com/bumptech/glide/issues/375
+                        ((View)view).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Bitmap newImage;
+                                if (resource.getWidth() > Constants.MAX_IMAGE_WIDTH) {
+                                    int newHeight = resource.getHeight() * Constants.MAX_IMAGE_WIDTH / resource.getWidth();
+                                    newImage = Bitmap.createScaledBitmap(resource, Constants.MAX_IMAGE_WIDTH, newHeight, true);
+                                } else {
+                                    newImage = resource;
+                                }
 
-    public void setListener(OnCompleteListener listener){
-        mListener = listener;
+                                if(newImage.getHeight() > HEIGHT_THRESHOLD) {
+                                    builder.setSpan(new ImageSpan(((View)view).getContext(), newImage), finalStart - start, finalEnd - start, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                } else {
+                                    builder.setSpan(new CenteredImageSpan(((View)view).getContext(), resource), finalStart - start, finalEnd - start, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                }
+
+                                if (view instanceof EditText) {
+                                    EditText editText = (EditText) view;
+                                    int selectionStart = editText.getSelectionStart();
+                                    int selectionEnd = editText.getSelectionEnd();
+                                    view.setText(builder);
+                                    editText.setSelection(selectionStart, selectionEnd);
+                                } else {
+                                    view.setText(builder);
+                                }
+                                retrieveFormulaOnlineImg(formulaList, view, builder, i + 1, start);
+                            }
+                        });
+                    }
+                    @Override
+                    public void onLoadFailed(Exception e, Drawable errorDrawable) {
+                        super.onLoadFailed(e, errorDrawable);
+                        if (e != null) e.printStackTrace();
+                        retrieveFormulaOnlineImg(formulaList, view, builder, i + 1, start);
+                    }
+
+                });
     }
 
-    public interface OnCompleteListener {
-        void onComplete(SpannableStringBuilder spannableStringBuilder);
-    }
+    /**
+     *
+     * @param formulaList
+     * @param start [start, end)
+     * @param end [start, end)
+     * @return
+     */
+    public static List<Formula> formulasBetween(List<Formula> formulaList, int start, int end) {
+        int first = -1, last = -1;
+        for (int i = 0; i < formulaList.size(); i++) {
+            Formula formula = formulaList.get(i);
+            if (first == -1 && formula.start >= start) {
+                first = i;
+            }
+            if (last == -1 && formula.end >= end) {
+                last = i;
+                break;
+            }
+        }
 
-    private static class Formula {
+        if (first == -1 && last == -1) {
+            return formulaList;
+        } else if (last == -1) {
+            return formulaList.subList(first, formulaList.size());
+        }
+
+        return formulaList.subList(first, last);
+    }
+    public static class Formula implements Comparable<Formula> {
         static final int TYPE_1 = 1;
         static final int TYPE_2 = 2;
         static final int TYPE_3 = 3;
@@ -337,6 +280,11 @@ class OnlineImgImpl {
             this.content = content;
             this.url = url;
             this.type = type;
+        }
+
+        @Override
+        public int compareTo(Formula formula) {
+            return Integer.valueOf(start).compareTo(formula.start);
         }
     }
 }

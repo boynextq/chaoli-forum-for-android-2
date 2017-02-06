@@ -54,6 +54,12 @@
 			app:borderWidth="0dp"
 			android:layout_gravity="end|bottom"
 			android:layout_margin="@dimen/fab_margin"/>
+        <uk.co.senab.photoview.PhotoView
+			android:id="@+id/photo_view"
+			android:background="#80000000"
+			android:visibility="gone"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent" />
 	</android.support.design.widget.CoordinatorLayout>
 </layout>
 

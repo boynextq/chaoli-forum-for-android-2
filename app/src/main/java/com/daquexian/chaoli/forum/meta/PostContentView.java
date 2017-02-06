@@ -51,12 +51,18 @@ public class PostContentView extends LinearLayout {
     private Post mPost;
     private int mConversationId;
     private List<Post.Attachment> mAttachmentList;
+    private OnImgClickListener mOnImgClickListener;
 
     private Boolean mShowQuote = true;
 
     public PostContentView(Context context) {
         super(context);
         init(context);
+    }
+
+    public PostContentView(Context context, OnImgClickListener onImgClickListener) {
+        super(context);
+        init(context, onImgClickListener);
     }
     public PostContentView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
@@ -79,6 +85,8 @@ public class PostContentView extends LinearLayout {
      * content      -> LaTeX CODE_START code CODE_END content
      *                  | LaTeX
      *
+     * LaTeX        -> plainText img LaTeX plainText
+     *
      * @param post the post
      */
     public void setPost(Post post) {
@@ -89,6 +97,73 @@ public class PostContentView extends LinearLayout {
         String content = post.getContent();
         content = content.replaceAll("\u00AD", "");
         fullContent(content, attachmentList);
+    }
+
+    private void LaTeX2(String str) {
+        str = removeTags(str);
+        List<OnlineImgUtils.Formula> formulaList = OnlineImgUtils.getAllFormulas(str, mAttachmentList);
+        formulaList.add(new OnlineImgUtils.Formula(str.length(), str.length(), "", "", OnlineImgUtils.Formula.TYPE_IMG));
+
+        int beginIndex = 0, endIndex;
+        for (int i = 0; i < formulaList.size() && beginIndex < str.length(); i++) {
+            OnlineImgUtils.Formula formula = formulaList.get(i);
+            endIndex = formula.start;
+            if (formula.type == Formula.TYPE_ATT || formula.type == Formula.TYPE_IMG) {
+                TextView textView = new TextView(mContext);
+                SpannableStringBuilder builder = new SpannableStringBuilder(str, beginIndex, endIndex);
+                builder = SFXParser3.removeTags(SFXParser3.parse(mContext, builder, mAttachmentList));
+                textView.setText(builder);
+                addView(textView);
+                OnlineImgUtils.retrieveFormulaOnlineImg(OnlineImgUtils.formulasBetween(formulaList, beginIndex, endIndex), textView, builder, 0, beginIndex);
+                beginIndex = formula.end + 1;
+
+                if (formula.url.equals("")) {
+                    continue;
+                }
+
+                final ImageView imageView = new ImageView(mContext);
+
+                LinearLayout.LayoutParams layoutParams = new LayoutParams(Constants.MAX_IMAGE_WIDTH, Constants.MAX_IMAGE_WIDTH / 2);
+                imageView.setLayoutParams(layoutParams);
+                imageView.setAdjustViewBounds(true);
+                // imageView.setScaleType(ImageView.ScaleType.FIT_START);
+                // imageView.setMaxWidth(Constants.MAX_IMAGE_WIDTH);
+                imageView.setPadding(0, 0, 0, 10);
+                Log.d(TAG, "fullContent: " + formula.url);
+                final ColorDrawable colorDrawable = new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray));
+                imageView.setImageDrawable(colorDrawable);
+                Glide.with(mContext)
+                        .load(formula.url)
+                        .into(new SimpleTarget<GlideDrawable>() {
+                            @Override
+                            public void onResourceReady(final GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                                /**
+                                 * adjust the size of ImageView according to image
+                                 */
+                                imageView.setLayoutParams(new LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                                imageView.setImageDrawable(resource);
+
+                                imageView.setOnClickListener(new OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        if (mOnImgClickListener != null) {
+                                            mOnImgClickListener.onImgClick(imageView);
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                addView(imageView);
+            }
+        }
+        /* if (beginIndex < str.length()) {
+            TextView textView = new TextView(mContext);
+            SpannableStringBuilder builder = new SpannableStringBuilder(str, beginIndex, str.length());
+            builder = SFXParser3.parse(mContext, builder, mAttachmentList);
+            textView.setText(builder);
+            addView(textView);
+            OnlineImgUtils.retrieveFormulaOnlineImg(formulaList, textView, builder, 0);
+        } */
     }
 
     /**
@@ -142,6 +217,15 @@ public class PostContentView extends LinearLayout {
                                  */
                                 imageView.setLayoutParams(new LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
                                 imageView.setImageDrawable(resource);
+
+                                imageView.setOnClickListener(new OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        if (mOnImgClickListener != null) {
+                                            mOnImgClickListener.onImgClick(imageView);
+                                        }
+                                    }
+                                });
                             }
                         });
                 addView(imageView);
@@ -153,18 +237,6 @@ public class PostContentView extends LinearLayout {
                         public void onClick(View view) {
                             Log.d(TAG, "onClick() called with: view = [" + view + "]");
                             MyUtils.downloadAttachment(mContext, attachment);
-                            /* try {
-                                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
-                                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, Constants.APP_DIR_NAME + "/" + attachment.getFilename());
-                                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
-                                request.allowScanningByMediaScanner();// if you want to be available from media players
-                                DownloadManager manager = (DownloadManager) mContext.getSystemService(DOWNLOAD_SERVICE);
-                                manager.enqueue(request);
-                            } catch (SecurityException e) {
-                                // in the case of user rejects the permission request
-                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(attUrl));
-                                mContext.startActivity(intent);
-                            } */
                         }
                     }, start, start + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                     builder.append("\n\n");
@@ -224,13 +296,13 @@ public class PostContentView extends LinearLayout {
         while (codeEndPos != -1 && (codeStartPos = str.indexOf(CODE_START_TAG, codeEndPos)) >= 0) {//codeMatcher.find(codeEndPos)) {
             if (codeEndPos != codeStartPos) {
                 piece = str.substring(codeEndPos, codeStartPos);
-                LaTeX(piece);
+                LaTeX2(piece);
             }
             codeEndPos = pairedIndex(str, codeStartPos, CODE_START_TAG, CODE_END_TAG);
             //codeEndPos = content.indexOf(CODE_END_TAG, codeStartPos) + CODE_END_TAG.length();
             if (codeEndPos == -1) {
                 piece = str.substring(codeStartPos);
-                LaTeX(piece);
+                LaTeX2(piece);
                 codeEndPos = str.length();
             } else {
                 code = str.substring(codeStartPos + CODE_START_TAG.length(), codeEndPos - CODE_END_TAG.length());
@@ -239,7 +311,7 @@ public class PostContentView extends LinearLayout {
         }
         if (codeEndPos != str.length()) {
             piece = str.substring(codeEndPos);
-            LaTeX(piece);
+            LaTeX2(piece);
         }
     }
 
@@ -303,9 +375,18 @@ public class PostContentView extends LinearLayout {
         return str;
     }
 
-    public void init(Context context) {
+    private void init(Context context) {
+        init(context, null);
+    }
+
+    private void init(Context context, OnImgClickListener onImgClickListener) {
+        mOnImgClickListener = onImgClickListener;
         mContext = context;
         removeAllViews();
+    }
+
+    public void setOnImgClickListener(OnImgClickListener onImgClickListener) {
+        mOnImgClickListener = onImgClickListener;
     }
 
     public int getConversationId() {
@@ -319,5 +400,30 @@ public class PostContentView extends LinearLayout {
     @SuppressWarnings("unused")
     public void showQuote(Boolean showQuote) {
         mShowQuote = showQuote;
+    }
+
+    public interface OnImgClickListener {
+        void onImgClick(ImageView imageView);
+    }
+
+    private static class Formula {
+        static final int TYPE_1 = 1;
+        static final int TYPE_2 = 2;
+        static final int TYPE_3 = 3;
+        static final int TYPE_4 = 4;
+        static final int TYPE_5 = 5;
+        static final int TYPE_IMG = 4;
+        static final int TYPE_ATT = 5;
+        int start, end;
+        String content, url;
+        int type;
+
+        Formula(int start, int end, String content, String url, int type) {
+            this.start = start;
+            this.end = end;
+            this.content = content;
+            this.url = url;
+            this.type = type;
+        }
     }
 }

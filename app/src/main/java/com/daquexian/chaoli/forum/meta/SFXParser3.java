@@ -53,26 +53,40 @@ public class SFXParser3 {
 			R.drawable.emoticons__0001_50, R.drawable.asonwwolf_smile, R.drawable.asonwwolf_laugh, R.drawable.asonwwolf_upset, R.drawable.asonwwolf_tear,
 			R.drawable.asonwwolf_worry, R.drawable.asonwwolf_shock, R.drawable.asonwwolf_amuse};
 
-	public static SpannableStringBuilder parse(final Context context, String string, List<Post.Attachment> attachmentList) {
-		final SpannableStringBuilder spannable = new SpannableStringBuilder(string);
+	public static String[] TAGS = {"[center]", "[/center]", "[h]", "[/h]", "[s]", "[/s]", "[b]", "[/b]",
+			"[i]", "[/i]"};
 
+	public static SpannableStringBuilder removeTags(SpannableStringBuilder builder) {
+		/* for (String tag : TAGS) {
+			Pattern pattern = Pattern.compile(tag);
+			Matcher matcher = pattern.matcher(builder);
+			while (matcher.find()) {
+				builder.replace(matcher.start(), matcher.end(), "");
+				matcher = pattern.matcher(builder);
+			}
+		}
+		return builder; */
+		return builder;
+	}
+
+	public static SpannableStringBuilder parse(final Context context, SpannableStringBuilder builder, List<Post.Attachment> attachmentList) {
 		Pattern cPattern = Pattern.compile("(?i)\\[c=(.*?)]((.|\n)*?)\\[/c]");
-		Matcher c = cPattern.matcher(spannable);
+		Matcher c = cPattern.matcher(builder);
 		while (c.find()) {
 			try {
 				int color = Color.parseColor(c.group(1));
-				spannable.setSpan(new ForegroundColorSpan(color), c.start(), c.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+				builder.setSpan(new ForegroundColorSpan(color), c.start(), c.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 
-				spannable.replace(c.end(2), c.end(), "");
-				spannable.replace(c.start(), c.start(2), "");
-				c = cPattern.matcher(spannable);
+				builder.replace(c.end(2), c.end(), "");
+				builder.replace(c.start(), c.start(2), "");
+				c = cPattern.matcher(builder);
 			} catch (IllegalArgumentException e) {
 				//避免不支持的颜色引起crash
 			}
 		}
 
 		Pattern urlPattern = Pattern.compile("(?i)\\[url=(.*?)](.*?)\\[/url]");
-		Matcher url = urlPattern.matcher(spannable);
+		Matcher url = urlPattern.matcher(builder);
 		while (url.find()) {
 			String site = url.group(1).toLowerCase();
 			if (!site.startsWith("http://") && !site.startsWith("https://")) {
@@ -80,84 +94,84 @@ public class SFXParser3 {
 			}
 
 			final String finalSite = site;
-			spannable.setSpan(new ClickableSpan() {
+			builder.setSpan(new ClickableSpan() {
 				@Override
 				public void onClick(View widget) {
-                    context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalSite)));
+					context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(finalSite)));
 				}
 			}, url.start(2), url.end(2), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(url.end(2), url.end(), "");
-			spannable.replace(url.start(), url.start(2), "");
-			url = urlPattern.matcher(spannable);
+			builder.replace(url.end(2), url.end(), "");
+			builder.replace(url.start(), url.start(2), "");
+			url = urlPattern.matcher(builder);
 		}
 
 		Pattern curtainPattern = Pattern.compile("(?i)(?<=\\[curtain\\])((.|\\n)+?)(?=\\[/curtain\\])");
-		Matcher curtain = curtainPattern.matcher(spannable);
+		Matcher curtain = curtainPattern.matcher(builder);
 		while (curtain.find()) {
-			spannable.setSpan(new BackgroundColorSpan(Color.DKGRAY), curtain.start(), curtain.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.setSpan(new BackgroundColorSpan(Color.DKGRAY), curtain.start(), curtain.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 //			spannable.setSpan(new Touchable, curtain.start(), curtain.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(curtain.end(), curtain.end() + 10, "");
-			spannable.replace(curtain.start() - 9, curtain.start(), "");
-			curtain = Pattern.compile("(?i)(?<=\\[curtain\\])(.+?)(?=\\[/curtain\\])").matcher(spannable);
+			builder.replace(curtain.end(), curtain.end() + 10, "");
+			builder.replace(curtain.start() - 9, curtain.start(), "");
+			curtain = Pattern.compile("(?i)(?<=\\[curtain\\])(.+?)(?=\\[/curtain\\])").matcher(builder);
 		}
 
 		Pattern bPattern = Pattern.compile("(?i)\\[b]((.|\\n)+?)\\[/b]");
-		Matcher b = bPattern.matcher(spannable);
+		Matcher b = bPattern.matcher(builder);
 		while (b.find()) {
-			spannable.setSpan(new StyleSpan(Typeface.BOLD), b.start(1), b.end(1), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(b.end(1), b.end(), "");
-			spannable.replace(b.start(), b.start(1), "");
-			b = bPattern.matcher(spannable);
+			builder.setSpan(new StyleSpan(Typeface.BOLD), b.start(1), b.end(1), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.replace(b.end(1), b.end(), "");
+			builder.replace(b.start(), b.start(1), "");
+			b = bPattern.matcher(builder);
 		}
 
 		Pattern iPattern = Pattern.compile("(?i)(?<=\\[i\\])((.|\\n)+?)(?=\\[/i\\])");
-		Matcher i = iPattern.matcher(spannable);
+		Matcher i = iPattern.matcher(builder);
 		while (i.find()) {
-			spannable.setSpan(new StyleSpan(Typeface.ITALIC), i.start(), i.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(i.end(), i.end() + 4, "");
-			spannable.replace(i.start() - 3, i.start(), "");
-			i = iPattern.matcher(spannable);
+			builder.setSpan(new StyleSpan(Typeface.ITALIC), i.start(), i.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.replace(i.end(), i.end() + 4, "");
+			builder.replace(i.start() - 3, i.start(), "");
+			i = iPattern.matcher(builder);
 		}
 
 		Pattern uPattern = Pattern.compile("(?i)(?<=\\[u\\])((.|\\n)+?)(?=\\[/u\\])");
-		Matcher u = uPattern.matcher(spannable);
+		Matcher u = uPattern.matcher(builder);
 		while (u.find()) {
-			spannable.setSpan(new UnderlineSpan(), u.start(), u.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(u.end(), u.end() + 4, "");
-			spannable.replace(u.start() - 3, u.start(), "");
-			u = uPattern.matcher(spannable);
+			builder.setSpan(new UnderlineSpan(), u.start(), u.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.replace(u.end(), u.end() + 4, "");
+			builder.replace(u.start() - 3, u.start(), "");
+			u = uPattern.matcher(builder);
 		}
 
 		Pattern sPattern = Pattern.compile("(?i)(?<=\\[s\\])((.|\\n)+?)(?=\\[/s\\])");
-		Matcher s = sPattern.matcher(spannable);
+		Matcher s = sPattern.matcher(builder);
 		while (s.find()) {
-			spannable.setSpan(new StrikethroughSpan(), s.start(), s.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(s.end(), s.end() + 4, "");
-			spannable.replace(s.start() - 3, s.start(), "");
-			s = sPattern.matcher(spannable);
+			builder.setSpan(new StrikethroughSpan(), s.start(), s.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.replace(s.end(), s.end() + 4, "");
+			builder.replace(s.start() - 3, s.start(), "");
+			s = sPattern.matcher(builder);
 		}
 
 		Pattern centerPattern = Pattern.compile("(?i)(?<=\\[center\\])((.|\\n)+?)(?=\\[/center\\])");
-		Matcher center = centerPattern.matcher(spannable);
+		Matcher center = centerPattern.matcher(builder);
 		while (center.find()) {
-			spannable.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), center.start(), center.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(center.end(), center.end() + 9, "\n\n");
-			spannable.replace(center.start() - 8, center.start(), "\n\n");
-			center = centerPattern.matcher(spannable);
+			builder.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), center.start(), center.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.replace(center.end(), center.end() + 9, "\n\n");
+			builder.replace(center.start() - 8, center.start(), "\n\n");
+			center = centerPattern.matcher(builder);
 		}
 
 		Pattern hPattern = Pattern.compile("(?i)(?<=\\[h\\])((.|\\n)+?)(?=\\[/h\\])");
-		Matcher h = hPattern.matcher(spannable);
+		Matcher h = hPattern.matcher(builder);
 		while (h.find()) {
-			spannable.setSpan(new RelativeSizeSpan(1.3f), h.start(), h.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-			spannable.replace(h.end(), h.end() + 4, "\n\n");
-			spannable.replace(h.start() - 3, h.start(), "\n\n");
-			h = hPattern.matcher(spannable);
+			builder.setSpan(new RelativeSizeSpan(1.3f), h.start(), h.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+			builder.replace(h.end(), h.end() + 4, "\n\n");
+			builder.replace(h.start() - 3, h.start(), "\n\n");
+			h = hPattern.matcher(builder);
 		}
 
 
 		Pattern attachmentPattern = Pattern.compile("(?i)\\[attachment:(.*?)]");
-		Matcher attachmentM = attachmentPattern.matcher(spannable);
+		Matcher attachmentM = attachmentPattern.matcher(builder);
 		boolean isImage = false;
 		while (attachmentList != null && attachmentM.find()) {
 			for (int j = attachmentList.size() - 1; j >= 0; j--) {
@@ -171,21 +185,21 @@ public class SFXParser3 {
 					}
 
 					if (!isImage) {
-							spannable.replace(attachmentM.start(), attachmentM.end(), attachment.getFilename());
-							spannable.setSpan(new ClickableSpan() {
-								@Override
-								public void onClick(View view) {
-									MyUtils.downloadAttachment(context, attachment);
-								}
-							}, attachmentM.start(), attachmentM.start() + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-							attachmentM = attachmentPattern.matcher(spannable);
+						builder.replace(attachmentM.start(), attachmentM.end(), attachment.getFilename());
+						builder.setSpan(new ClickableSpan() {
+							@Override
+							public void onClick(View view) {
+								MyUtils.downloadAttachment(context, attachment);
+							}
+						}, attachmentM.start(), attachmentM.start() + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+						attachmentM = attachmentPattern.matcher(builder);
 					}
-                    break;
+					break;
 				}
 			}
 		}
 
-		String str = spannable.toString();
+		String str = builder.toString();
 		for (int j = 0; j < iconStrs.length; j++) {
 			int from = 0;
 			String iconStr = iconStrs[j];
@@ -201,11 +215,15 @@ public class SFXParser3 {
 				if (iconStr.equals("/^^")) Log.d(TAG, "parse: " + str.trim().length() + ", " + iconStr.length() + ", " + (from + iconStr.length()) + ", " + str.length());
 				if (str.trim().length() == iconStr.length() ||
 						((from == 0 || ' ' == str.charAt(from - 1)) && (from + iconStr.length() == str.length() || ' ' == str.charAt(from + iconStr.length()) || '\n' == str.charAt(from + iconStr.length())))) {
-					spannable.setSpan(new ImageSpan(context, icons[j]), from, from + iconStr.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+					builder.setSpan(new ImageSpan(context, icons[j]), from, from + iconStr.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 				}
 				from += iconStr.length();
 			}
 		}
-		return spannable;
+		return builder;
+	}
+	public static SpannableStringBuilder parse(final Context context, String string, List<Post.Attachment> attachmentList) {
+		final SpannableStringBuilder builder = new SpannableStringBuilder(string);
+		return parse(context, builder, attachmentList);
 	}
 }

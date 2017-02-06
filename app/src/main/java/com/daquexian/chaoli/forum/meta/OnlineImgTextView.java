@@ -18,7 +18,7 @@ public class OnlineImgTextView extends TextView implements IOnlineImgView
 {
 	private OnlineImgImpl mImpl;
 
-	public static final String TAG = "OnlineImgTextView";
+	private static final String TAG = "OnlineImgTextView";
 
 	public OnlineImgTextView(Context context, @Nullable List<Post.Attachment> attachmentList)
 	{
