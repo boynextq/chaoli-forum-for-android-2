@@ -88,6 +88,21 @@ public class SFXParser3 {
 			}
 		}
 
+		cPattern = Pattern.compile("(?i)\\[color=(.*?)]((.|\n)*?)\\[/color]");
+		c = cPattern.matcher(builder);
+		while (c.find()) {
+			try {
+				int color = Color.parseColor(c.group(1));
+				builder.setSpan(new ForegroundColorSpan(color), c.start(), c.end(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+
+				builder.replace(c.end(2), c.end(), "");
+				builder.replace(c.start(), c.start(2), "");
+				c = cPattern.matcher(builder);
+			} catch (IllegalArgumentException e) {
+				//避免不支持的颜色引起crash
+			}
+		}
+
 		Pattern urlPattern = Pattern.compile("(?i)\\[url=(.*?)](.*?)\\[/url]");
 		Matcher url = urlPattern.matcher(builder);
 		while (url.find()) {
