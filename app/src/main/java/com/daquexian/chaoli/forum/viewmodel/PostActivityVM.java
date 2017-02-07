@@ -15,7 +15,6 @@ import com.daquexian.chaoli.forum.meta.PostContentView;
 import com.daquexian.chaoli.forum.model.Conversation;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.model.PostListResult;
-import com.daquexian.chaoli.forum.network.MyOkHttp;
 import com.daquexian.chaoli.forum.network.MyRetrofit;
 import com.daquexian.chaoli.forum.utils.MyUtils;
 
@@ -25,7 +24,7 @@ import java.util.List;
  * Created by jianhao on 16-9-21.
  */
 
-public class PostActivityVM extends BaseViewModel implements PostContentView.OnImgClickListener {
+public class PostActivityVM extends BaseViewModel implements PostContentView.OnViewClickListener {
     public Conversation conversation;
     public int conversationId;
     public String title;
@@ -51,8 +50,11 @@ public class PostActivityVM extends BaseViewModel implements PostContentView.OnI
     public ObservableBoolean goToQuote = new ObservableBoolean();
     public ObservableBoolean goToHomepage = new ObservableBoolean(false);
     public ObservableBoolean imgClicked = new ObservableBoolean(false);
+    public ObservableBoolean tableButtonClicked = new ObservableBoolean(false);
     public Post clickedPost;
     public ImageView clickedImageView;
+    public String[] header;
+    public List<String[]> data;
 
     private static final String TAG = "PostActivityVM";
 

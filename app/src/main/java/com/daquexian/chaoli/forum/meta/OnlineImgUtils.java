@@ -7,6 +7,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.ImageSpan;
 import android.util.Log;
 import android.view.View;
@@ -40,10 +41,10 @@ public class OnlineImgUtils {
     private static final Pattern PATTERN3 = Pattern.compile("(?i)\\[tex]((.|\\n)*?)\\[/tex]");
     private static final Pattern PATTERN4 = Pattern.compile("(?i)\\\\begin\\{.*?\\}(.|\\n)*?\\\\end\\{.*?\\}");
     private static final Pattern PATTERN5 = Pattern.compile("(?i)\\$\\$(.+?)\\$\\$");
-    private static final Pattern IMG_PATTERN = Pattern.compile("(?i)\\[img](.*?)\\[/img]");
+    private static final Pattern IMG_PATTERN = Pattern.compile("(?i)\\[img(=\\d+)?](.*?)\\[/img]");
     private static final Pattern ATTACHMENT_PATTERN = Pattern.compile("(?i)\\[attachment:(.*?)]");
     private static final Pattern[] PATTERNS = {PATTERN1, PATTERN2, PATTERN3, PATTERN4, PATTERN5, IMG_PATTERN, ATTACHMENT_PATTERN};
-    private static final int[] indexInRegex = {1, 1, 1, 0, 1, 1, 1};
+    private static final int[] indexInRegex = {1, 1, 1, 0, 1, 2, 1};
 
     public static List<Formula> getAll(CharSequence charSequence, List<Post.Attachment> attachmentList) {
         return getSpecific(charSequence, attachmentList, new int[]{0, 1, 2, 3, 4, 5, 6});
@@ -78,18 +79,22 @@ public class OnlineImgUtils {
             Matcher matcher = matchers[i];
             int index = indexInRegexLocal[i];
 
-            int start, end;
+            int start, end, size;
             String content, url;
             int type = types[i];
 
             while (matcher.find()) {
                 url = "";
+                size = -1;
                 start = matcher.start();
                 end = matcher.end();
                 content = matcher.group(index);
 
                 if (type == Formula.TYPE_IMG) {
                     url = content;
+                    if (!TextUtils.isEmpty(matcher.group(1))) {
+                        size = Integer.parseInt(matcher.group(1).substring(1));
+                    }
                 } else if (type == Formula.TYPE_ATT) {
                     for (int j = attachmentList.size() - 1; j >= 0; j--) {
                         Post.Attachment attachment = attachmentList.get(j);
@@ -104,7 +109,7 @@ public class OnlineImgUtils {
                 } else {
                     url = SITE + content;
                 }
-                formulaList.add(new Formula(start, end, content, url, type));
+                formulaList.add(new Formula(start, end, content, url, type, size));
             }
         }
 
@@ -236,7 +241,7 @@ public class OnlineImgUtils {
             if (first == -1 && formula.start >= start) {
                 first = i;
             }
-            if (last == -1 && formula.end >= end) {
+            if (last == -1 && formula.end > end) {
                 last = i;
                 break;
             }
@@ -261,13 +266,19 @@ public class OnlineImgUtils {
         int start, end;
         String content, url;
         int type;
+        int size;
 
         Formula(int start, int end, String content, String url, int type) {
+            this(start, end, content, url, type, -1);
+        }
+
+        Formula(int start, int end, String content, String url, int type, int size) {
             this.start = start;
             this.end = end;
             this.content = content;
             this.url = url;
             this.type = type;
+            this.size = size;
         }
 
         @Override

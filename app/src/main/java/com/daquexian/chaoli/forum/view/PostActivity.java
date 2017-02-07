@@ -9,7 +9,6 @@ import android.databinding.DataBindingUtil;
 import android.databinding.Observable;
 import android.os.Bundle;
 import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -31,7 +30,6 @@ import com.daquexian.chaoli.forum.network.MyOkHttp;
 import com.daquexian.chaoli.forum.utils.ConversationUtils;
 import com.daquexian.chaoli.forum.utils.LoginUtils;
 import com.daquexian.chaoli.forum.utils.MyUtils;
-import com.daquexian.chaoli.forum.utils.PostUtils;
 import com.daquexian.chaoli.forum.viewmodel.BaseViewModel;
 import com.daquexian.chaoli.forum.viewmodel.PostActivityVM;
 import com.orangegangsters.github.swipyrefreshlayout.library.SwipyRefreshLayout;
@@ -228,6 +226,16 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 				showPhotoView();
 			}
 		});
+
+		this.viewModel.tableButtonClicked.addOnPropertyChangedCallback(new Observable.OnPropertyChangedCallback() {
+			@Override
+			public void onPropertyChanged(Observable observable, int i) {
+				showTableView();
+			}
+		});
+	}
+
+	private void showTableView() {
 	}
 
 	@SuppressWarnings("ConstantConditions")
