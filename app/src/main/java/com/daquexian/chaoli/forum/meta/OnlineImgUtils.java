@@ -93,7 +93,11 @@ public class OnlineImgUtils {
                 if (type == Formula.TYPE_IMG) {
                     url = content;
                     if (!TextUtils.isEmpty(matcher.group(1))) {
-                        size = Integer.parseInt(matcher.group(1).substring(1));
+                        try {
+                            size = Integer.parseInt(matcher.group(1).substring(1));
+                        } catch (NumberFormatException e) {
+                            size = -1;
+                        }
                     }
                 } else if (type == Formula.TYPE_ATT) {
                     for (int j = attachmentList.size() - 1; j >= 0; j--) {
