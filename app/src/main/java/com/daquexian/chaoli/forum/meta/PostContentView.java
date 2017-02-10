@@ -416,7 +416,7 @@ public class PostContentView extends LinearLayout {
     private void LaTeX2(String str) {
         Log.d(TAG, "LaTeX2: " + str);
         str = removeTags(str);
-        SpannableStringBuilder builder = new SpannableStringBuilder(str);
+        SpannableStringBuilder builder = new SpannableStringBuilder(OnlineImgUtils.removeNewlineInFormula(str));
         builder = SFXParser3.removeTags(SFXParser3.parse(mContext, builder, mAttachmentList));
         List<OnlineImgUtils.Formula> formulaList = OnlineImgUtils.getAll(builder, mAttachmentList);
         formulaList.add(new OnlineImgUtils.Formula(builder.length(), builder.length(), "", "", OnlineImgUtils.Formula.TYPE_IMG));
@@ -425,7 +425,7 @@ public class PostContentView extends LinearLayout {
         for (int i = 0; i < formulaList.size() && beginIndex < builder.length(); i++) {
             final OnlineImgUtils.Formula formula = formulaList.get(i);
             endIndex = formula.start;
-            if (formula.type == Formula.TYPE_ATT || formula.type == Formula.TYPE_IMG) {
+            if (formula.type == OnlineImgUtils.Formula.TYPE_ATT || formula.type == OnlineImgUtils.Formula.TYPE_IMG) {
                 TextView textView = new TextView(mContext);
                 final CharSequence subSequence = builder.subSequence(beginIndex, endIndex);
                 final SpannableStringBuilder subBuilder = new SpannableStringBuilder(subSequence);
@@ -604,7 +604,7 @@ public class PostContentView extends LinearLayout {
         void onImgClick(ImageView imageView);
     }
 
-    private static class Formula {
+    /* private static class Formula {
         static final int TYPE_1 = 1;
         static final int TYPE_2 = 2;
         static final int TYPE_3 = 3;
@@ -623,5 +623,5 @@ public class PostContentView extends LinearLayout {
             this.url = url;
             this.type = type;
         }
-    }
+    } */
 }

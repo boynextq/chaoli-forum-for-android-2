@@ -20,6 +20,8 @@ import com.bumptech.glide.request.target.SimpleTarget;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,6 +30,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Substitute {@link OnlineImgImpl} temporarily
  * Created by daquexian on 17-2-6.
  */
 
@@ -144,22 +147,25 @@ public class OnlineImgUtils {
         }
     }
 
+    /**
+     * Fix the "bug" that ImageSpan shows as many as the num of lines of the string substituted
+     * @param str string containing formulas
+     * @return string containing single-line formulas
+     */
     public static String removeNewlineInFormula(String str){
         Matcher m1 = PATTERN1.matcher(str);
         Matcher m2 = PATTERN2.matcher(str);
         Matcher m3 = PATTERN3.matcher(str);
         Matcher m4 = PATTERN4.matcher(str);
         Matcher m5 = PATTERN5.matcher(str);
-        Boolean flag5 = false, flag4 = false, flag3 = false, flag2 = false, flag1 = false;
-        while ((flag1 = m1.find()) || (flag2 = m2.find()) || (flag3 = m3.find()) || (flag4 = m4.find()) || (flag5 = m5.find())) {
-            String oldStr;
-            if (flag5) oldStr = m5.group();
-            else if (flag4) oldStr = m4.group();
-            else if (flag3) oldStr = m3.group();
-            else if (flag2) oldStr = m2.group();
-            else oldStr = m1.group();
-            String newStr = oldStr.replaceAll("[\\n\\r]", "");
-            str = str.replace(oldStr, newStr);
+        Matcher[] matchers = {m1, m2, m3, m4, m5};
+        for (Matcher matcher : matchers) {
+            while (matcher.find()) {
+                String oldStr = matcher.group();
+                String newStr = oldStr.replaceAll("[\\n\\r]", "");
+
+                str = str.replace(oldStr, newStr);
+            }
         }
 
         return str;
@@ -177,13 +183,12 @@ public class OnlineImgUtils {
         }
         final Formula formula = formulaList.get(i);
         Log.d(TAG, "retrieveFormulaOnlineImg: " + formula.url);
-        final int finalType = formula.type;
         final int finalStart = formula.start;
         final int finalEnd = formula.end;
-        Glide.with(((View)view).getContext())
+        Glide.with(view.getContext())
                 .load(formula.url)
                 .asBitmap()
-                .placeholder(new ColorDrawable(ContextCompat.getColor(((View)view).getContext(),android.R.color.darker_gray)))
+                .placeholder(new ColorDrawable(ContextCompat.getColor(view.getContext(), android.R.color.darker_gray)))
                 .into(new SimpleTarget<Bitmap>()
                 {
                     @Override
@@ -191,7 +196,7 @@ public class OnlineImgUtils {
                     {
                         final int HEIGHT_THRESHOLD = 60;
                         // post to avoid ConcurrentModificationException, from https://github.com/bumptech/glide/issues/375
-                        ((View)view).post(new Runnable() {
+                        view.post(new Runnable() {
                             @Override
                             public void run() {
                                 Bitmap newImage;
@@ -205,7 +210,7 @@ public class OnlineImgUtils {
                                 if(newImage.getHeight() > HEIGHT_THRESHOLD) {
                                     builder.setSpan(new ImageSpan(((View)view).getContext(), newImage), finalStart - start, finalEnd - start, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                                 } else {
-                                    builder.setSpan(new CenteredImageSpan(((View)view).getContext(), resource), finalStart - start, finalEnd - start, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                    builder.setSpan(new CenteredImageSpan(((View)view).getContext(), newImage), finalStart - start, finalEnd - start, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                                 }
 
                                 if (view instanceof EditText) {
@@ -233,10 +238,10 @@ public class OnlineImgUtils {
 
     /**
      *
-     * @param formulaList
+     * @param formulaList the whole formula list
      * @param start [start, end)
      * @param end [start, end)
-     * @return
+     * @return formulas in [start, end)
      */
     public static List<Formula> formulasBetween(List<Formula> formulaList, int start, int end) {
         int first = -1, last = -1;
@@ -245,7 +250,7 @@ public class OnlineImgUtils {
             if (first == -1 && formula.start >= start) {
                 first = i;
             }
-            if (last == -1 && formula.end > end) {
+            if (formula.end > end) {
                 last = i;
                 break;
             }
@@ -259,14 +264,15 @@ public class OnlineImgUtils {
 
         return formulaList.subList(first, last);
     }
+
     public static class Formula implements Comparable<Formula> {
         static final int TYPE_1 = 1;
         static final int TYPE_2 = 2;
         static final int TYPE_3 = 3;
         static final int TYPE_4 = 4;
         static final int TYPE_5 = 5;
-        static final int TYPE_IMG = 4;
-        static final int TYPE_ATT = 5;
+        static final int TYPE_IMG = 6;
+        static final int TYPE_ATT = 7;
         int start, end;
         String content, url;
         int type;
@@ -286,7 +292,7 @@ public class OnlineImgUtils {
         }
 
         @Override
-        public int compareTo(Formula formula) {
+        public int compareTo(@NotNull Formula formula) {
             return Integer.valueOf(start).compareTo(formula.start);
         }
     }

@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
  * Created by jianhao on 16-10-22.
  */
 
+// TODO: 17-2-10 refactor like OnlineImgUtils
 class OnlineImgImpl {
     List<Post.Attachment> mAttachmentList;
     private List<Formula> mFormulaList;
