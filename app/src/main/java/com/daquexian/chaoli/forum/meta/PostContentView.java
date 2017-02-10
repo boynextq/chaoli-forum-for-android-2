@@ -1,13 +1,26 @@
 package com.daquexian.chaoli.forum.meta;
 
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.support.v4.content.ContextCompat;
+import android.text.Layout;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
+import android.text.style.AlignmentSpan;
+import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -59,6 +72,11 @@ public class PostContentView extends LinearLayout {
     private List<Post.Attachment> mAttachmentList;
     private OnViewClickListener mOnViewClickListener;
 
+    private List<Parser4.TOKEN> mTokenList;
+    private int mTokenIndex;
+
+    private SpannableStringBuilder mBuilder = new SpannableStringBuilder();
+
     private Boolean mShowQuote = true;
 
     public PostContentView(Context context) {
@@ -106,7 +124,329 @@ public class PostContentView extends LinearLayout {
         List<Post.Attachment> attachmentList = new ArrayList<>(post.getAttachments());
         String content = post.getContent();
         content = content.replaceAll("\u00AD", "");
-        fullContent(content, attachmentList);
+        mTokenList = Parser4.tokenizer(content, mAttachmentList);
+        code();
+        // fullContent(content, attachmentList);
+    }
+
+    private Parser4.TOKEN thisToken() {
+        return mTokenList.get(mTokenIndex);
+    }
+
+    private void next() {
+        mTokenIndex++;
+    }
+
+    private void code() {
+        if (thisToken() instanceof Parser4.CODE_START) {
+            displayExistingText();
+            next();
+            CodeView codeView = (CodeView) LayoutInflater.from(mContext).inflate(R.layout.code_view, this, false);
+            StringBuilder codeContent = new StringBuilder();
+            while (!(thisToken() instanceof Parser4.CODE_END)) {
+                codeContent.append(thisToken().value);
+                next();
+            }
+            codeView.setCode(codeContent.toString());
+            addView(codeView);
+            next();
+        }
+        quote();
+    }
+
+    private void quote() {
+        table();
+    }
+
+    private void table() {
+        if (thisToken() instanceof Parser4.TABLE) {
+            displayExistingText();
+            table(thisToken().value);
+            next();
+        }
+        LaTeX();
+    }
+
+    private void LaTeX() {
+        if (thisToken() instanceof Parser4.FORMULA) {
+            //// TODO: 17-2-9
+            next();
+        }
+        image();
+    }
+
+    private void image() {
+        if (thisToken() instanceof Parser4.IMAGE) {
+            // TODO: 17-2-9
+            displayExistingText();
+            next();
+        }
+        center();
+    }
+
+    private boolean mCenter = false;
+    private int mCenterStart;
+    private boolean mTitle = false;
+    private int mTitleStart;
+
+    private void center() {
+        if (thisToken() instanceof Parser4.CENTER_END) {
+            if (mCenter) {
+                mCenter = false;
+                mBuilder.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), mCenterStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+        if (thisToken() instanceof Parser4.CENTER_START) {
+            if (!mCenter) {
+                mCenter = true;
+                mCenterStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        title();
+    }
+
+    private void title() {
+        if (thisToken() instanceof Parser4.TITLE_END) {
+            if (mTitle) {
+                mTitle = false;
+                mBuilder.setSpan(new RelativeSizeSpan(1.3f), mTitleStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.TITLE_START) {
+            if (!mTitle) {
+                mTitle = true;
+                mTitleStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        delete();
+    }
+
+    private boolean mDelete;
+    private int mDeleteStart;
+
+    private void delete() {
+        if (thisToken() instanceof Parser4.DELETE_END) {
+            if (mDelete) {
+                mDelete = false;
+                mBuilder.setSpan(new StrikethroughSpan(), mDeleteStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.DELETE_START) {
+            if (!mDelete) {
+                mDelete = true;
+                mDeleteStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        underline();
+    }
+
+    private boolean mUnderline;
+    private int mUnderlineStart;
+
+    private void underline() {
+        if (thisToken() instanceof Parser4.UNDERLINE_END) {
+            if (mUnderline) {
+                mUnderline = false;
+                mBuilder.setSpan(new UnderlineSpan(), mUnderlineStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.UNDERLINE_START) {
+            if (!mUnderline) {
+                mUnderline = true;
+                mUnderlineStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        bold();
+    }
+
+    private boolean mBold;
+    private int mBoldStart;
+
+    private void bold() {
+        if (thisToken() instanceof Parser4.BOLD_END) {
+            if (mBold) {
+                mBold = false;
+                mBuilder.setSpan(new StyleSpan(Typeface.BOLD), mBoldStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.BOLD_START) {
+            if (!mBold) {
+                mBold = true;
+                mBoldStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        italic();
+    }
+    private boolean mItalic;
+    private int mItalicStart;
+
+    private void italic() {
+        if (thisToken() instanceof Parser4.ITALIC_END) {
+            if (mItalic) {
+                mItalic = false;
+                mBuilder.setSpan(new StyleSpan(Typeface.ITALIC), mItalicStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.ITALIC_START) {
+            if (!mItalic) {
+                mItalic = true;
+                mItalicStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        curtain();
+    }
+
+    private boolean mCurtain;
+    private int mCurtainStart;
+
+    private void curtain() {
+        if (thisToken() instanceof Parser4.CURTAIN_END) {
+            if (mCurtain) {
+                mCurtain = false;
+                mBuilder.setSpan(new BackgroundColorSpan(Color.DKGRAY), mCurtainStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.CURTAIN_START) {
+            if (!mCurtain) {
+                mCurtain = true;
+                mCurtainStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        url();
+    }
+
+    private boolean mUrl;
+    private int mUrlStart;
+    private String mUrlValue;
+
+    private void url() {
+        if (thisToken() instanceof Parser4.URL_END) {
+            if (mUrl) {
+                mUrl = false;
+                mBuilder.setSpan(new ClickableSpan() {
+                    @Override
+                    public void onClick(View widget) {
+                        mContext.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(mUrlValue)));
+                    }
+                }, mUrlStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.URL_START) {
+            if (!mUrl) {
+                mUrl = true;
+                mUrlValue = ((Parser4.URL_START) thisToken()).url;
+                mUrlStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        color();
+    }
+
+    private boolean mColor;
+    private int mColorStart;
+
+    private void color() {
+        if (thisToken() instanceof Parser4.COLOR_END) {
+            if (mColor) {
+                mColor = false;
+                mBuilder.setSpan(new RelativeSizeSpan(1.3f), mColorStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        } else if (thisToken() instanceof Parser4.COLOR_START) {
+            if (!mColor) {
+                mColor = true;
+                mColorStart = mBuilder.length();
+            } else {
+                mBuilder.append(thisToken().value);
+            }
+            next();
+        }
+
+        attachment();
+    }
+
+    private void attachment() {
+        if (thisToken() instanceof Parser4.ATTACHMENT) {
+
+            next();
+        }
+
+        plain();
+    }
+
+    private void plain() {
+        if (thisToken() instanceof Parser4.PLAIN) {
+            mBuilder.append(thisToken().value);
+            next();
+        }
+
+        end();
+    }
+
+    private void end() {
+        if (thisToken() instanceof Parser4.END) {
+            displayExistingText();
+        } else {
+            code();
+        }
+    }
+
+    private void displayExistingText() {
+        if (!TextUtils.isEmpty(mBuilder)) {
+            TextView textView = new TextView(mContext);
+            textView.setText(mBuilder);
+            addView(textView);
+        }
     }
 
     /**
@@ -261,7 +601,7 @@ public class PostContentView extends LinearLayout {
         }
     }
 
-    private void table(String str) {
+    private void table(CharSequence str) {
         final String SPECIAL_CHAR = "\uF487";
         Pattern pattern = Pattern.compile("(?:\\n|^)( *\\|.+\\| *\\n)??( *\\|(?: *:?----*:? *\\|)+ *\\n)((?: *\\|.+\\| *(?:\\n|$))+)");
         Matcher matcher = pattern.matcher(str);
@@ -273,7 +613,7 @@ public class PostContentView extends LinearLayout {
         while (matcher.find()) {
             endIndex = matcher.start();
             if (endIndex != startIndex) {
-                LaTeX2(str.substring(startIndex, endIndex));
+                LaTeX2(str.subSequence(startIndex, endIndex));
             }
             startIndex = matcher.end();
 
@@ -406,16 +746,15 @@ public class PostContentView extends LinearLayout {
         }
 
         if (startIndex != str.length()) {
-            LaTeX2(str.substring(startIndex));
+            LaTeX2(str.subSequence(startIndex, str.length()));
         }
     }
 
     /**
      * see {@link #setPost(Post)}
      */
-    private void LaTeX2(String str) {
+    private void LaTeX2(CharSequence str) {
         Log.d(TAG, "LaTeX2: " + str);
-        str = removeTags(str);
         SpannableStringBuilder builder = new SpannableStringBuilder(str);
         builder = SFXParser3.removeTags(SFXParser3.parse(mContext, builder, mAttachmentList));
         List<OnlineImgUtils.Formula> formulaList = OnlineImgUtils.getAll(builder, mAttachmentList);
