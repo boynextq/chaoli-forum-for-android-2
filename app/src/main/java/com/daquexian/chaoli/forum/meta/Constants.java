@@ -94,6 +94,9 @@ public class Constants
 	public static final String loginSPKey = "listJSON";
 	public static final String loginBool = "logged";
 
+	/* FORMULA_SITE + content */
+	public static final String FORMULA_SITE = "http://latex.codecogs.com/gif.latex?\\dpi{220}";
+
 	public static final String[] IMAGE_FILE_EXTENSION = {".jpg", ".png", ".gif", ".jpeg"};
 
 	public static final String NONE = "none";

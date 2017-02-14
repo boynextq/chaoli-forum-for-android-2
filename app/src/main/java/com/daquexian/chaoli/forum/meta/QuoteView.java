@@ -29,6 +29,11 @@ public class QuoteView extends LinearLayout {
     private static final String TAG = "QuoteView";
     private static int BG_COLOR ;
 
+    public QuoteView(Context context) {
+        super(context);
+        init(context, null);
+    }
+
     public QuoteView(Context context, List<Post.Attachment> attachmentList) {
         super(context);
         init(context, attachmentList);

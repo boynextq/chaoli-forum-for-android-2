@@ -6,6 +6,7 @@ import android.databinding.Bindable;
 import android.support.annotation.Nullable;
 
 import com.daquexian.chaoli.forum.BR;
+import com.daquexian.chaoli.forum.meta.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -381,6 +382,15 @@ notifyPropertyChanged(BR.new AvatarView(context, avatarFormat, memberId, usernam
 		{
 			this.draftConversationId = draftConversationId;
 			notifyPropertyChanged(BR.draftConversationId);
+		}
+
+		public boolean isImage() {
+			for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
+				if (getFilename().endsWith(image_ext)) {
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 

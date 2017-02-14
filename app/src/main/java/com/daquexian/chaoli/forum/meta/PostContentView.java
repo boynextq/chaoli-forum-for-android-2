@@ -2,14 +2,15 @@ package com.daquexian.chaoli.forum.meta;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.LinearLayoutCompat;
 import android.text.Layout;
-import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.AlignmentSpan;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
+import android.text.style.ImageSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
@@ -30,6 +32,7 @@ import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -37,18 +40,25 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.animation.GlideAnimation;
+import com.bumptech.glide.request.target.SimpleTarget;
 import com.bumptech.glide.request.target.Target;
 import com.daquexian.chaoli.forum.R;
+import com.daquexian.chaoli.forum.meta.parse.MyImageView;
+import com.daquexian.chaoli.forum.meta.parse.TextWithFormula;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.utils.MyUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.github.kbiakov.codeview.CodeView;
+
+import static com.daquexian.chaoli.forum.meta.Parser4.*;
 
 /**
  * 包含QuoteView和OnlineImgTextView
@@ -120,16 +130,480 @@ public class PostContentView extends LinearLayout {
     public void setPost(Post post) {
         removeAllViews();
         mPost = post;
-        mAttachmentList = post.getAttachments();
         List<Post.Attachment> attachmentList = new ArrayList<>(post.getAttachments());
         String content = post.getContent();
-        content = content.replaceAll("\u00AD", "");
-        mTokenList = Parser4.tokenizer(content, mAttachmentList);
-        code();
-        // fullContent(content, attachmentList);
+        setText(content, attachmentList);
     }
 
-    private Parser4.TOKEN thisToken() {
+    public void setText(String text, List<Post.Attachment> attachmentList) {
+        text = text.replaceAll("\u00AD", "");
+
+        mAttachmentList = attachmentList;
+        mTokenList = tokenizer(text, mAttachmentList);
+        resetTokenIndex();
+        // fullContent(content, attachmentList);
+        List<Object> result = until(END.class);
+
+        for (Post.Attachment att : mAttachmentList) {
+            append(result, attachment(att));
+        }
+
+        for (final Object o : result) {
+            if (o instanceof TextWithFormula) {
+                final TextWithFormula builder = (TextWithFormula) o;
+                List<TextWithFormula.Formula> formulas = builder.getFormulas();
+
+                final TextView textView = new TextView(mContext);
+                textView.setText((TextWithFormula) o);
+                for (final TextWithFormula.Formula formula : formulas) {
+                    Glide.with(mContext)
+                            .load(Constants.FORMULA_SITE + formula.content)
+                            .asBitmap()
+                            .placeholder(new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray)))
+                            .into(new SimpleTarget<Bitmap>()
+                            {
+                                @Override
+                                public void onResourceReady(final Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation)
+                                {
+                                    final int HEIGHT_THRESHOLD = 60;
+                                    // post to avoid ConcurrentModificationException, from https://github.com/bumptech/glide/issues/375
+                                    textView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Bitmap newImage;
+                                            if (resource.getWidth() > Constants.MAX_IMAGE_WIDTH) {
+                                                int newHeight = resource.getHeight() * Constants.MAX_IMAGE_WIDTH / resource.getWidth();
+                                                newImage = Bitmap.createScaledBitmap(resource, Constants.MAX_IMAGE_WIDTH, newHeight, true);
+                                            } else {
+                                                newImage = resource;
+                                            }
+
+                                            if(newImage.getHeight() > HEIGHT_THRESHOLD) {
+                                                builder.setSpan(new ImageSpan(mContext, newImage), formula.start, formula.end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                            } else {
+                                                builder.setSpan(new CenteredImageSpan(mContext, resource), formula.start, formula.end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                            }
+
+                                            textView.setText(builder);
+                                            // retrieveFormulaOnlineImg(formulaList, view, builder, i + 1, start);
+                                        }
+                                    });
+                                }
+                                @Override
+                                public void onLoadFailed(Exception e, Drawable errorDrawable) {
+                                    super.onLoadFailed(e, errorDrawable);
+                                    if (e != null) e.printStackTrace();
+                                }
+                            });
+                }
+                textView.setMovementMethod(LinkMovementMethod.getInstance());
+                myAddView(textView);
+            } else if (o instanceof CodeView) {
+                myAddView((CodeView) o);
+            } else if (o instanceof ImageView) {
+                myAddView((ImageView) o);
+            } else if (o instanceof HorizontalScrollView) {
+                myAddView((HorizontalScrollView) o);
+            } else if (o instanceof QuoteView) {
+                myAddView((QuoteView) o);
+            }
+        }
+    }
+
+    private void myAddView(View view) {
+        if (view instanceof MyImageView && ((MyImageView) view).centered) {
+            // TODO: 17-2-13 any more efficient way?
+            RelativeLayout rl = new RelativeLayout(mContext);
+            RelativeLayout.LayoutParams rlLp = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            rlLp.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
+            rl.addView(view);
+            rl.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            addView(rl);
+        } else {
+            addView(view);
+        }
+    }
+
+    private void resetTokenIndex() {
+        mTokenIndex = 0;
+    }
+
+    private final Class[] start = {CENTER_START.class, BOLD_START.class,
+            ITALIC_START.class, UNDERLINE_START.class, DELETE_START.class,
+            CURTAIN_START.class, TITLE_START.class};
+
+    private final Class[] end = {CENTER_END.class, BOLD_END.class, ITALIC_END.class,
+            UNDERLINE_END.class, DELETE_END.class, CURTAIN_END.class, TITLE_END.class};
+
+    private final String CENTER_OP = "center";
+    private final String BOLD_OP = "bold";
+    private final String ITALIC_OP = "italic";
+    private final String UNDERLINE_OP = "underline";
+    private final String DELETE_OP = "delete";
+    private final String CURTAIN_OP = "curtain";
+    private final String TITLE_OP = "title";
+
+    private final String[] operation = {CENTER_OP, BOLD_OP, ITALIC_OP, UNDERLINE_OP, DELETE_OP, CURTAIN_OP, TITLE_OP};
+
+    private <T extends TOKEN> List<Object> until(Class<T> endClass) {
+        List<Object> ret = new ArrayList<>();
+
+        while (!(thisToken() instanceof END) && !(endClass.isInstance(thisToken()))) {
+            boolean flag = false;
+            int tmp;
+
+            for (Class anEnd : end) {
+                if (anEnd.isInstance(thisToken())) {
+                    append(ret, new TextWithFormula(thisToken().value));
+                    flag = true;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < start.length; i++) {
+                if (start[i].isInstance(thisToken())) {
+                    if (thisToken() instanceof CENTER_START) {
+                        mCenter = true;
+                    }
+                    tmp = getTokenIndex();
+                    next();
+                    List<Object> shown = until(end[i]);
+                    mCenter = false;
+                    if (shown != null) {
+                        concat(ret, operate(shown, operation[i]));
+                    } else {
+                        setTokenIndex(tmp);
+                        append(ret, new TextWithFormula(thisToken().value));
+                    }
+                    flag = true;
+                }
+            }
+
+            if (!flag) {
+                if (thisToken() instanceof PLAIN) {
+                    append(ret, new TextWithFormula(thisToken().value));
+
+                } else if (thisToken() instanceof ICON) {
+                    final ICON thisToken = (ICON) thisToken();
+
+                    TextWithFormula textWithFormula = new TextWithFormula(thisToken.value);
+                    textWithFormula.setSpan(new ImageSpan(mContext, thisToken.iconId), 0,
+                            thisToken.value.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+
+                    append(ret, textWithFormula);
+
+                } else if (thisToken() instanceof FORMULA) {
+
+                    FORMULA thisToken = (FORMULA) thisToken();
+
+                    TextWithFormula textWithFormula = new TextWithFormula(thisToken().value);
+
+                    textWithFormula.addFormula(0, thisToken.length,
+                            thisToken.content, thisToken.contentStart,
+                            thisToken.contentStart + thisToken.content.length());
+
+                    append(ret, textWithFormula);
+
+                } else if (thisToken() instanceof CODE_START) {
+                    /**
+                     * [code][code][/code][/code][/code] shows [code][/code][/code]
+                     */
+                    tmp = getTokenIndex();
+                    int i = 1;
+                    StringBuilder string = new StringBuilder("");
+                    StringBuilder substring = new StringBuilder("");
+                    next();
+                    while (!(thisToken() instanceof END)) {
+                        if (thisToken() instanceof CODE_START) {
+                            i++;
+                        }
+                        if (thisToken() instanceof CODE_END) {
+                            i--;
+                            if (i == 0) {
+                                string.append(substring);
+                                break;
+                            }
+                            string.append(substring);
+                            substring.delete(0, substring.length());
+                            tmp = getTokenIndex() + 1;
+                        }
+                        substring.append(thisToken().value);
+                        next();
+                    }
+
+                    if (i == 0) {
+                        final CodeView codeView = (CodeView) LayoutInflater.from(mContext).inflate(R.layout.code_view, this, false);
+                        codeView.setCode(string.toString());
+                        ret.add(codeView);
+                    } else if (!TextUtils.isEmpty(string)) {
+                        setTokenIndex(tmp);
+                        final CodeView codeView = (CodeView) LayoutInflater.from(mContext).inflate(R.layout.code_view, this, false);
+                        codeView.setCode(string.toString());
+                        ret.add(codeView);
+                    } else {
+                        setTokenIndex(tmp);
+                        append(ret, new TextWithFormula(thisToken().value));
+                    }
+
+                } else if (thisToken() instanceof IMAGE) {
+
+                    IMAGE thisToken = (IMAGE) thisToken();
+                    MyImageView imageView = loadImage(thisToken.url, thisToken.size);
+                    if (mCenter) {
+                        imageView.centered = true;
+                    }
+                    append(ret, imageView);
+
+                } else if (thisToken() instanceof TABLE) {
+
+                    View table = table(thisToken().value);
+                    append(ret, table);
+
+                } else if (thisToken() instanceof ATTACHMENT) {
+
+                    final ATTACHMENT thisToken = (ATTACHMENT) thisToken();
+
+                    mAttachmentList.remove(thisToken.attachment);   // shows remaining attachments at the bottom of view
+
+                    append(ret, attachment(thisToken.attachment));
+
+                } else if (thisToken() instanceof QUOTE_START) {
+                    tmp = getTokenIndex();
+                    int i = 1;
+                    StringBuilder string = new StringBuilder("");
+                    StringBuilder substring = new StringBuilder("");
+                    next();
+                    while (!(thisToken() instanceof END)) {
+                        if (thisToken() instanceof QUOTE_START) {
+                            i++;
+                        }
+                        if (thisToken() instanceof QUOTE_END) {
+                            i--;
+                            if (i == 0) {
+                                string.append(substring);
+                                break;
+                            }
+                            string.append(substring);
+                            substring.delete(0, substring.length());
+                            tmp = getTokenIndex() + 1;
+                        }
+                        substring.append(thisToken().value);
+                        next();
+                    }
+
+                    if (i == 0) {
+                        final QuoteView quoteView = new QuoteView(mContext);
+                        quoteView.setText(string.toString());
+                        ret.add(quoteView);
+                    } else if (!TextUtils.isEmpty(string)) {
+                        setTokenIndex(tmp);
+                        final QuoteView quoteView = new QuoteView(mContext);
+                        quoteView.setText(string.toString());
+                        ret.add(quoteView);
+                    } else {
+                        setTokenIndex(tmp);
+                        append(ret, new TextWithFormula(thisToken().value));
+                    }
+                }
+            }
+            next();
+        }
+
+        if (endClass.isInstance(thisToken())) {
+            return ret;
+        }
+
+        return null;
+    }
+
+    private Object attachment(final Post.Attachment attachment) {
+        if (attachment.isImage()) {
+            String url = MyUtils.getAttachmentImageUrl(attachment);
+            MyImageView imageView = loadImage(url);
+            if (mCenter) {
+                imageView.centered = true;
+            }
+
+            return imageView;
+        } else {
+            TextWithFormula builder = new TextWithFormula(attachment.getFilename());
+            builder.setSpan(new ClickableSpan() {
+                @Override
+                public void onClick(View view) {
+                    MyUtils.downloadAttachment(mContext, attachment);
+                }
+            }, 0, attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+            builder.append("\n\n");
+
+            return builder;
+        }
+    }
+    private void append(List<Object> list, Object element) {
+        concat(list, Collections.singletonList(element));
+    }
+
+    private MyImageView loadImage(String url) {
+        return loadImage(url, -1);
+    }
+
+    private MyImageView loadImage(String url, int size) {
+        return loadImage(url, size, size);
+    }
+
+    private MyImageView loadImage(String url, int width, int height) {
+        final MyImageView imageView = new MyImageView(mContext);
+
+        ViewGroup.LayoutParams layoutParams;
+        if (height == -1 || width == -1) {
+            if (imageView.centered) {
+                layoutParams = new RelativeLayout.LayoutParams(Constants.MAX_IMAGE_WIDTH, Constants.MAX_IMAGE_WIDTH / 2);
+                ((RelativeLayout.LayoutParams) layoutParams).addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
+            } else {
+                layoutParams = new LinearLayout.LayoutParams(Constants.MAX_IMAGE_WIDTH, Constants.MAX_IMAGE_WIDTH / 2);
+            }
+        } else {
+            if (imageView.centered) {
+                layoutParams = new RelativeLayout.LayoutParams(width, height);
+                ((RelativeLayout.LayoutParams) layoutParams).addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
+            } else {
+                layoutParams = new LinearLayout.LayoutParams(width, height);
+            }
+        }
+        imageView.setLayoutParams(layoutParams);
+        imageView.setAdjustViewBounds(true);
+        imageView.setPadding(0, 0, 0, 10);
+
+        Glide.with(mContext)
+                .load(url)
+                .placeholder(new ColorDrawable(ContextCompat.getColor(mContext, android.R.color.darker_gray)))
+                .listener(new RequestListener<String, GlideDrawable>() {
+                    @Override
+                    public boolean onException(Exception e, String model, Target<GlideDrawable> target, boolean isFirstResource) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(GlideDrawable resource, String model, Target<GlideDrawable> target, boolean isFromMemoryCache, boolean isFirstResource) {
+                        /**
+                         * adjust the size of ImageView according to image
+                         */
+                        if (imageView.centered) {
+                            final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+                            params.addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
+                            imageView.setLayoutParams(params);
+                        } else {
+                            imageView.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+                        }
+
+                        imageView.setImageDrawable(resource);
+
+                        imageView.setOnClickListener(new OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                if (mOnViewClickListener != null) {
+                                    mOnViewClickListener.onImgClick(imageView);
+                                }
+                            }
+                        });
+                        return false;
+                    }
+                })
+                .into(imageView);
+        return imageView;
+    }
+
+    private List<Object> operate(List<Object> list, String operation) {
+        switch (operation) {
+            case BOLD_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new StyleSpan(Typeface.BOLD), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                break;
+            case CENTER_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    } else if (o instanceof ImageView) {
+                        ((ImageView) o).setScaleType(ImageView.ScaleType.CENTER);
+                    }
+                }
+                break;
+            case ITALIC_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new StyleSpan(Typeface.ITALIC), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                break;
+            case UNDERLINE_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new UnderlineSpan(), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                break;
+            case DELETE_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new StrikethroughSpan(), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                break;
+            case CURTAIN_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new BackgroundColorSpan(Color.DKGRAY), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                }
+            case TITLE_OP:
+                for (Object o : list) {
+                    if (o instanceof TextWithFormula) {
+                        final TextWithFormula textWithFormula = (TextWithFormula) o;
+                        textWithFormula.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), 0, textWithFormula.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                break;
+        }
+        return list;
+    }
+
+    private <T> void concat(List<Object> list1, List<T> list2) {
+        if (list1.size() == 0) {
+            list1.addAll(list2);
+        } else {
+            if (list2.size() > 0) {
+                if (list1.get(list1.size() - 1) instanceof TextWithFormula &&
+                        list2.get(0) instanceof TextWithFormula) {
+
+                    TextWithFormula a = (TextWithFormula) list1.get(list1.size() - 1);
+                    TextWithFormula b = (TextWithFormula) list2.get(0);
+                    for (TextWithFormula.Formula formula : b.getFormulas()) {
+                        formula.start += a.length();
+                        formula.end += a.length();
+                        formula.contentStart += a.length();
+                        formula.contentEnd += a.length();
+                    }
+                    a.getFormulas().addAll(b.getFormulas());
+                    a.append(b);
+
+                    //((SpannableStringBuilder) list1.get(list1.size() - 1)).append((SpannableStringBuilder) list2.get(0));
+                    list1.addAll(list2.subList(1, list2.size()));
+                } else {
+                    list1.addAll(list2);
+                }
+            }
+        }
+    }
+
+    private TOKEN thisToken() {
         return mTokenList.get(mTokenIndex);
     }
 
@@ -137,13 +611,21 @@ public class PostContentView extends LinearLayout {
         mTokenIndex++;
     }
 
+    public int getTokenIndex() {
+        return mTokenIndex;
+    }
+
+    public void setTokenIndex(int tokenIndex) {
+        this.mTokenIndex = tokenIndex;
+    }
+
     private void code() {
-        if (thisToken() instanceof Parser4.CODE_START) {
+        if (thisToken() instanceof CODE_START) {
             displayExistingText();
             next();
             CodeView codeView = (CodeView) LayoutInflater.from(mContext).inflate(R.layout.code_view, this, false);
             StringBuilder codeContent = new StringBuilder();
-            while (!(thisToken() instanceof Parser4.CODE_END)) {
+            while (!(thisToken() instanceof CODE_END)) {
                 codeContent.append(thisToken().value);
                 next();
             }
@@ -159,7 +641,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void table() {
-        if (thisToken() instanceof Parser4.TABLE) {
+        if (thisToken() instanceof TABLE) {
             displayExistingText();
             table(thisToken().value);
             next();
@@ -168,7 +650,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void LaTeX() {
-        if (thisToken() instanceof Parser4.FORMULA) {
+        if (thisToken() instanceof FORMULA) {
             //// TODO: 17-2-9
             next();
         }
@@ -176,7 +658,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void image() {
-        if (thisToken() instanceof Parser4.IMAGE) {
+        if (thisToken() instanceof IMAGE) {
             // TODO: 17-2-9
             displayExistingText();
             next();
@@ -190,7 +672,7 @@ public class PostContentView extends LinearLayout {
     private int mTitleStart;
 
     private void center() {
-        if (thisToken() instanceof Parser4.CENTER_END) {
+        if (thisToken() instanceof CENTER_END) {
             if (mCenter) {
                 mCenter = false;
                 mBuilder.setSpan(new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER), mCenterStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -199,7 +681,7 @@ public class PostContentView extends LinearLayout {
             }
             next();
         }
-        if (thisToken() instanceof Parser4.CENTER_START) {
+        if (thisToken() instanceof CENTER_START) {
             if (!mCenter) {
                 mCenter = true;
                 mCenterStart = mBuilder.length();
@@ -213,7 +695,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void title() {
-        if (thisToken() instanceof Parser4.TITLE_END) {
+        if (thisToken() instanceof TITLE_END) {
             if (mTitle) {
                 mTitle = false;
                 mBuilder.setSpan(new RelativeSizeSpan(1.3f), mTitleStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -221,7 +703,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.TITLE_START) {
+        } else if (thisToken() instanceof TITLE_START) {
             if (!mTitle) {
                 mTitle = true;
                 mTitleStart = mBuilder.length();
@@ -238,7 +720,7 @@ public class PostContentView extends LinearLayout {
     private int mDeleteStart;
 
     private void delete() {
-        if (thisToken() instanceof Parser4.DELETE_END) {
+        if (thisToken() instanceof DELETE_END) {
             if (mDelete) {
                 mDelete = false;
                 mBuilder.setSpan(new StrikethroughSpan(), mDeleteStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -246,7 +728,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.DELETE_START) {
+        } else if (thisToken() instanceof DELETE_START) {
             if (!mDelete) {
                 mDelete = true;
                 mDeleteStart = mBuilder.length();
@@ -263,7 +745,7 @@ public class PostContentView extends LinearLayout {
     private int mUnderlineStart;
 
     private void underline() {
-        if (thisToken() instanceof Parser4.UNDERLINE_END) {
+        if (thisToken() instanceof UNDERLINE_END) {
             if (mUnderline) {
                 mUnderline = false;
                 mBuilder.setSpan(new UnderlineSpan(), mUnderlineStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -271,7 +753,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.UNDERLINE_START) {
+        } else if (thisToken() instanceof UNDERLINE_START) {
             if (!mUnderline) {
                 mUnderline = true;
                 mUnderlineStart = mBuilder.length();
@@ -288,7 +770,7 @@ public class PostContentView extends LinearLayout {
     private int mBoldStart;
 
     private void bold() {
-        if (thisToken() instanceof Parser4.BOLD_END) {
+        if (thisToken() instanceof BOLD_END) {
             if (mBold) {
                 mBold = false;
                 mBuilder.setSpan(new StyleSpan(Typeface.BOLD), mBoldStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -296,7 +778,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.BOLD_START) {
+        } else if (thisToken() instanceof BOLD_START) {
             if (!mBold) {
                 mBold = true;
                 mBoldStart = mBuilder.length();
@@ -312,7 +794,7 @@ public class PostContentView extends LinearLayout {
     private int mItalicStart;
 
     private void italic() {
-        if (thisToken() instanceof Parser4.ITALIC_END) {
+        if (thisToken() instanceof ITALIC_END) {
             if (mItalic) {
                 mItalic = false;
                 mBuilder.setSpan(new StyleSpan(Typeface.ITALIC), mItalicStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -320,7 +802,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.ITALIC_START) {
+        } else if (thisToken() instanceof ITALIC_START) {
             if (!mItalic) {
                 mItalic = true;
                 mItalicStart = mBuilder.length();
@@ -337,7 +819,7 @@ public class PostContentView extends LinearLayout {
     private int mCurtainStart;
 
     private void curtain() {
-        if (thisToken() instanceof Parser4.CURTAIN_END) {
+        if (thisToken() instanceof CURTAIN_END) {
             if (mCurtain) {
                 mCurtain = false;
                 mBuilder.setSpan(new BackgroundColorSpan(Color.DKGRAY), mCurtainStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -345,7 +827,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.CURTAIN_START) {
+        } else if (thisToken() instanceof CURTAIN_START) {
             if (!mCurtain) {
                 mCurtain = true;
                 mCurtainStart = mBuilder.length();
@@ -363,7 +845,7 @@ public class PostContentView extends LinearLayout {
     private String mUrlValue;
 
     private void url() {
-        if (thisToken() instanceof Parser4.URL_END) {
+        if (thisToken() instanceof URL_END) {
             if (mUrl) {
                 mUrl = false;
                 mBuilder.setSpan(new ClickableSpan() {
@@ -376,10 +858,10 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.URL_START) {
+        } else if (thisToken() instanceof URL_START) {
             if (!mUrl) {
                 mUrl = true;
-                mUrlValue = ((Parser4.URL_START) thisToken()).url;
+                mUrlValue = ((URL_START) thisToken()).url;
                 mUrlStart = mBuilder.length();
             } else {
                 mBuilder.append(thisToken().value);
@@ -394,7 +876,7 @@ public class PostContentView extends LinearLayout {
     private int mColorStart;
 
     private void color() {
-        if (thisToken() instanceof Parser4.COLOR_END) {
+        if (thisToken() instanceof COLOR_END) {
             if (mColor) {
                 mColor = false;
                 mBuilder.setSpan(new RelativeSizeSpan(1.3f), mColorStart, mBuilder.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -402,7 +884,7 @@ public class PostContentView extends LinearLayout {
                 mBuilder.append(thisToken().value);
             }
             next();
-        } else if (thisToken() instanceof Parser4.COLOR_START) {
+        } else if (thisToken() instanceof COLOR_START) {
             if (!mColor) {
                 mColor = true;
                 mColorStart = mBuilder.length();
@@ -416,7 +898,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void attachment() {
-        if (thisToken() instanceof Parser4.ATTACHMENT) {
+        if (thisToken() instanceof ATTACHMENT) {
 
             next();
         }
@@ -425,7 +907,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void plain() {
-        if (thisToken() instanceof Parser4.PLAIN) {
+        if (thisToken() instanceof PLAIN) {
             mBuilder.append(thisToken().value);
             next();
         }
@@ -434,7 +916,7 @@ public class PostContentView extends LinearLayout {
     }
 
     private void end() {
-        if (thisToken() instanceof Parser4.END) {
+        if (thisToken() instanceof END) {
             displayExistingText();
         } else {
             code();
@@ -601,7 +1083,7 @@ public class PostContentView extends LinearLayout {
         }
     }
 
-    private void table(CharSequence str) {
+    private View table(CharSequence str) {
         final String SPECIAL_CHAR = "\uF487";
         Pattern pattern = Pattern.compile("(?:\\n|^)( *\\|.+\\| *\\n)??( *\\|(?: *:?----*:? *\\|)+ *\\n)((?: *\\|.+\\| *(?:\\n|$))+)");
         Matcher matcher = pattern.matcher(str);
@@ -610,7 +1092,7 @@ public class PostContentView extends LinearLayout {
 
         int startIndex = 0, endIndex;
 
-        while (matcher.find()) {
+        if (matcher.find()) {
             endIndex = matcher.start();
             if (endIndex != startIndex) {
                 LaTeX2(str.subSequence(startIndex, endIndex));
@@ -674,10 +1156,7 @@ public class PostContentView extends LinearLayout {
                     if (cell != null) {
                         cell = cell.replace(SPECIAL_CHAR, "|");
                     }
-                    PostContentView postContentView = PostContentView.newInstance(getContext(), cell, mOnViewClickListener);
-                    // TextView textView = new TextView(mContext);
-                    // textView.setBackgroundResource((i % 2 == 0) ? R.drawable.cell_shape_black : R.drawable.code_shape_white);
-                    // postContentView.setBackgroundResource(R.drawable.code_shape_white);
+                    PostContentView postContentView = PostContentView.newInstance(getContext(), cell, mAttachmentList, mOnViewClickListener);
                     TableRow.LayoutParams pcvParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT);
                     switch (margins[j]) {
                         case CENTER:
@@ -691,7 +1170,6 @@ public class PostContentView extends LinearLayout {
                             break;
                     }
                     postContentView.setPadding(10, 10, 10, 10);
-                    // pcvParams.setMargins(10, 10, 10, 10);
                     postContentView.setLayoutParams(pcvParams);
                     tableRow.addView(postContentView);
                     tableRow.addView(getVerticalDivider());
@@ -702,52 +1180,18 @@ public class PostContentView extends LinearLayout {
 
             scrollView.addView(tableLayout);
 
-            addView(scrollView);
-
-            LayoutParams svParams = (LinearLayout.LayoutParams) scrollView.getLayoutParams();
+            /* LayoutParams svParams = (LinearLayout.LayoutParams) scrollView.getLayoutParams();
             svParams.setMargins(0, 10, 0, 10);
-            scrollView.setLayoutParams(svParams);
+            scrollView.setLayoutParams(svParams); */
 
-            /* Button button = new Button(mContext);
-            button.setText("click to see table");
-            final List<String> finalHeaders = headers;
-            button.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    mOnViewClickListener.onTableButtonClick(finalHeaders != null ? finalHeaders.toArray(new String[columnNum]) : new String[0], whole);
-                }
-            });
-            addView(button); */
-
-            //TableView tableView = (TableView) LayoutInflater.from(mContext).inflate(R.layout.table_view, this, false);
-            /* final TableView tableView = new TableView(mContext);
-            final String[][] DATA_TO_SHOW = { { "This", "is", "a", "test" },
-                    { "and", "a", "second", "test" } };
-            final SimpleTableDataAdapter dataAdapter = new SimpleTableDataAdapter(mContext, whole);
-            tableView.setDataAdapter(dataAdapter);
-            tableView.setColumnCount(columnNum);
-
-            Log.d(TAG, "table: " + tableView.getColumnCount());
-            if (headers != null) {
-                tableView.setHeaderAdapter(new SimpleTableHeaderAdapter(mContext, headers.toArray(new String[columnNum])));
-            }
-            addView(tableView);
-
-            tableView.post(new Runnable() {
-                @Override
-                public void run() {
-                    Log.d(TAG, "run: " + tableView.getHeight());
-                    // tableView.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                    tableView.invalidate();
-                }
-            });
-
-            //Log.d(TAG, "table: " + tableView.getColumnCount());*/
+            return scrollView;
         }
 
-        if (startIndex != str.length()) {
+        return null;
+
+        /* if (startIndex != str.length()) {
             LaTeX2(str.subSequence(startIndex, str.length()));
-        }
+        } */
     }
 
     /**
@@ -853,11 +1297,11 @@ public class PostContentView extends LinearLayout {
         addView(codeView);
     }
 
-    public static PostContentView newInstance(Context context, String string, OnViewClickListener onViewClickListener) {
+    public static PostContentView newInstance(Context context, String string, List<Post.Attachment> attachmentList, OnViewClickListener onViewClickListener) {
         PostContentView postContentView = new PostContentView(context, onViewClickListener);
 
         if (!TextUtils.isEmpty(string)) {
-            postContentView.codeBlock(string);
+            postContentView.setText(string, attachmentList);
         }
 
         return postContentView;

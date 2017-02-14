@@ -240,10 +240,16 @@ public class Parser4 {
 
     public static class FORMULA extends TOKEN {
         String content;
-        FORMULA(int position, String content, String value) {
+        int contentStart;
+        FORMULA(int position, String content, int contentStart, String value) {
             this.position = position;
             this.content = content;
-            this.value = value;
+            this.contentStart = contentStart;
+            /*
+             * remove all newline character to avoid the ImageSpan shows multiple times when
+             * formula content stretches over multiple lines.
+             */
+            this.value = value.replaceAll("[\n\r]", "");
             this.length = value.length();
         }
     }
@@ -261,6 +267,26 @@ public class Parser4 {
             this.position = position;
             this.value = "[/code]";
             this.length = 7;
+        }
+    }
+
+    public static class QUOTE_START extends TOKEN {
+        String quotedUsername;
+        String postId;
+        QUOTE_START(int position, String value, String quotedUsername, String postId) {
+            this.position = position;
+            this.value = value;
+            this.length = value.length();
+            this.quotedUsername = quotedUsername;
+            this.postId = postId;
+        }
+    }
+
+    public static class QUOTE_END extends TOKEN {
+        QUOTE_END(int position) {
+            this.position = position;
+            this.value = "[/quote]";
+            this.length = value.length();
         }
     }
 
@@ -282,7 +308,6 @@ public class Parser4 {
     }
 
     public static class TABLE extends TOKEN {
-        String content;
         static final int LEFT = 0, RIGHT = 1, CENTER = 2;
         TABLE(int position, String content) {
             this.position = position;
@@ -292,12 +317,15 @@ public class Parser4 {
     }
 
     public static class END extends TOKEN {
-
+        END(int position) {
+            this.position = position;
+        }
     }
 
     private static final Pattern COLOR_START_REG1 = Pattern.compile("(?i)\\[c=(.*?)]");
     private static final Pattern COLOR_START_REG2 = Pattern.compile("(?i)\\[color=(.*?)]");
-    private static final Pattern COLOR_END_REG = Pattern.compile("(?i)\\[/c]");
+    private static final Pattern COLOR_END_REG1 = Pattern.compile("(?i)\\[/c]");
+    private static final Pattern COLOR_END_REG2 = Pattern.compile("(?i)\\[/color]");
     private static final Pattern URL_START_REG = Pattern.compile("(?i)\\[url=(.*?)]");
     private static final Pattern URL_END_REG = Pattern.compile("(?i)\\[/url]");
     private static final Pattern CURTAIN_START_REG = Pattern.compile("(?i)\\[curtain]");
@@ -314,14 +342,18 @@ public class Parser4 {
     private static final Pattern CENTER_END_REG = Pattern.compile("(?i)\\[/center]");
     private static final Pattern TITLE_START_REG = Pattern.compile("(?i)\\[h]");
     private static final Pattern TITLE_END_REG = Pattern.compile("(?i)\\[/h]");
+    private static final Pattern CODE_START_REG = Pattern.compile("(?i)\\[code]");
+    private static final Pattern CODE_END_REG = Pattern.compile("(?i)\\[/code]");
+    private static final Pattern QUOTE_START_REG = Pattern.compile("(?i)\\[quote(?:=(\\d+?):@(.*?))?]");
+    private static final Pattern QUOTE_END_REG = Pattern.compile("(?i)\\[/quote]");
     private static final Pattern ATTACHMENT_REG = Pattern.compile("(?i)\\[attachment:(.*?)]");
 
     private static final Pattern FORMULA_REG1 = Pattern.compile("(?i)\\$\\$?((.|\\n)+?)\\$\\$?");
     private static final Pattern FORMULA_REG2 = Pattern.compile("(?i)\\\\[(\\[]((.|\\n)*?)\\\\[\\])]");
     private static final Pattern FORMULA_REG3 = Pattern.compile("(?i)\\[tex]((.|\\n)*?)\\[/tex]");
     private static final Pattern FORMULA_REG4 = Pattern.compile("(?i)\\\\begin\\{.*?\\}(.|\\n)*?\\\\end\\{.*?\\}");
-    private static final Pattern FORMULA_REG5 = Pattern.compile("(?i)\\$\\$(.+?)\\$\\$");
-    private static final Pattern[] PATTERNS = {FORMULA_REG1, FORMULA_REG2, FORMULA_REG3, FORMULA_REG4, FORMULA_REG5};
+    // private static final Pattern FORMULA_REG5 = Pattern.compile("(?i)\\$\\$(.+?)\\$\\$");
+    private static final Pattern[] PATTERNS = {FORMULA_REG1, FORMULA_REG2, FORMULA_REG3, FORMULA_REG4};
 
     private static final Pattern IMG_REG = Pattern.compile("(?i)\\[img(=\\d+)?](.*?)\\[/img]");
 
@@ -338,84 +370,83 @@ public class Parser4 {
 
         pattern = COLOR_START_REG1;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new COLOR_START(matcher.start(), matcher.group(1), matcher.group().length()));
-            start = matcher.end();
+
         }
 
         pattern = COLOR_START_REG2;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new COLOR_START(matcher.start(), matcher.group(1), matcher.group().length()));
-            start = matcher.end();
+
         }
 
         pattern = URL_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             String url = matcher.group(1).toLowerCase();
             if (!url.startsWith("http://") && !url.startsWith("https://")) {
                 url = "http://" + url;
             }
             mTokenList.add(new URL_START(matcher.start(), url, matcher.group()));
-            start = matcher.end();
+
         }
 
         pattern = URL_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new URL_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = CENTER_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new CENTER_START(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = CENTER_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new CENTER_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = CURTAIN_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new CURTAIN_START(matcher.start()));
-            start = matcher.end();
+
         }
         pattern = CURTAIN_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new CURTAIN_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = ATTACHMENT_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+        while (matcher.find()) {
             String id = matcher.group(1);
             if (attachmentList != null) {
                 for (Post.Attachment attachment : attachmentList) {
@@ -427,103 +458,133 @@ public class Parser4 {
             }
         }
 
-        pattern = COLOR_END_REG;
+        pattern = COLOR_END_REG1;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+        while (matcher.find()) {
             mTokenList.add(new COLOR_END(matcher.start(), matcher.group()));
-            start = matcher.end();
+        }
+
+        pattern = COLOR_END_REG2;
+        matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            mTokenList.add(new COLOR_END(matcher.start(), matcher.group()));
         }
 
         pattern = ITALIC_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+        while (matcher.find()) {
             mTokenList.add(new ITALIC_START(matcher.start()));
-            start = matcher.end();
         }
 
         pattern = ITALIC_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new ITALIC_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = BOLD_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new BOLD_START(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = BOLD_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new BOLD_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = DELETE_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new DELETE_START(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = DELETE_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new DELETE_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = UNDERLINE_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new UNDERLINE_START(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = UNDERLINE_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new UNDERLINE_END(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = TITLE_START_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new TITLE_START(matcher.start()));
-            start = matcher.end();
+
         }
 
         pattern = TITLE_END_REG;
         matcher = pattern.matcher(text);
-        start = 0;
 
-        while (matcher.find(start)) {
+
+        while (matcher.find()) {
             mTokenList.add(new TITLE_END(matcher.start()));
-            start = matcher.end();
+        }
+
+        pattern = CODE_START_REG;
+        matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            mTokenList.add(new CODE_START(matcher.start()));
+        }
+
+        pattern = CODE_END_REG;
+        matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            mTokenList.add(new CODE_END(matcher.start()));
+        }
+
+        pattern = QUOTE_START_REG;
+        matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            mTokenList.add(new QUOTE_START(matcher.start(), matcher.group(), matcher.group(1), matcher.group(2)));
+        }
+
+        pattern = QUOTE_END_REG;
+        matcher = pattern.matcher(text);
+
+        while (matcher.find()) {
+            mTokenList.add(new QUOTE_END(matcher.start()));
         }
 
         String str = text.toString();
@@ -568,23 +629,26 @@ public class Parser4 {
 
 
         final int[] indexInRegex = {1, 1, 1, 0, 1};
-        Matcher[] matchers = new Matcher[indexInRegex.length];
-        for (int i = 0; i < indexInRegex.length; i++) {
-            int index = indexInRegex[i];
-            matchers[i] = PATTERNS[index].matcher(text);
+        Matcher[] matchers = new Matcher[PATTERNS.length];
+        for (int i = 0; i < PATTERNS.length; i++) {
+            matchers[i] = PATTERNS[i].matcher(text);
         }
 
         for (int i = 0; i < matchers.length; i++) {
             matcher = matchers[i];
             int index = indexInRegex[i];
 
-            String content;
+            String content, value;
+            int contentStart;
 
             while (matcher.find()) {
                 start = matcher.start();
                 content = matcher.group(index);
+                value = matcher.group();
 
-                mTokenList.add(new FORMULA(start, content, matcher.group()));
+                contentStart = matcher.start(index);
+
+                mTokenList.add(new FORMULA(start, content, contentStart - start, value));
             }
         }
 
@@ -597,28 +661,29 @@ public class Parser4 {
                 for (int j = 0; j < mTokenList.size(); j++) {
                     TOKEN token1 = mTokenList.get(j);
 
-                    if (token1.position > token.position + token.length) {
+                    if (token1.position >= token.position + token.length) {
                         break;
                     }
 
                     if (token1.position > token.position) {
                         mTokenList.remove(j);
+                        j--;
                     }
                 }
             }
         }
+
+        mTokenList.add(new END(text.length()));
 
         start = 0;
         for (int i = 0; i < mTokenList.size(); i++) {
             TOKEN token = mTokenList.get(i);
             if (token.position > start) {
                 mTokenList.add(i, new PLAIN(start, text.subSequence(start, token.position)));
-                start = token.position + token.length;
                 i++;
             }
+            start = token.position + token.length;
         }
-
-        mTokenList.add(new END());
 
         return mTokenList;
     }
