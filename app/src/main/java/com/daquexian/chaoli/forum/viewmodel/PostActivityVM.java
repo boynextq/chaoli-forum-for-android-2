@@ -1,30 +1,42 @@
 package com.daquexian.chaoli.forum.viewmodel;
 
+import android.app.DownloadManager;
+import android.content.Context;
+import android.content.Intent;
 import android.databinding.ObservableArrayList;
 import android.databinding.ObservableBoolean;
 import android.databinding.ObservableField;
 import android.databinding.ObservableInt;
+import android.net.Uri;
+import android.os.Environment;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 
 import com.daquexian.chaoli.forum.ChaoliApplication;
 import com.daquexian.chaoli.forum.R;
 import com.daquexian.chaoli.forum.binding.PostLayoutSelector;
 import com.daquexian.chaoli.forum.meta.Constants;
-import com.daquexian.chaoli.forum.meta.PostContentView;
 import com.daquexian.chaoli.forum.model.Conversation;
 import com.daquexian.chaoli.forum.model.Post;
 import com.daquexian.chaoli.forum.model.PostListResult;
 import com.daquexian.chaoli.forum.network.MyRetrofit;
 import com.daquexian.chaoli.forum.utils.MyUtils;
+import com.daquexian.flexiblerichtextview.Attachment;
+import com.daquexian.flexiblerichtextview.FlexibleRichTextView;
 
 import java.util.List;
+
+import static android.content.Context.DOWNLOAD_SERVICE;
 
 /**
  * Created by jianhao on 16-9-21.
  */
 
-public class PostActivityVM extends BaseViewModel implements PostContentView.OnViewClickListener {
+public class PostActivityVM extends BaseViewModel implements FlexibleRichTextView.OnViewClickListener {
+    private Context mContext;
+
     public Conversation conversation;
     public int conversationId;
     public String title;
@@ -51,6 +63,7 @@ public class PostActivityVM extends BaseViewModel implements PostContentView.OnV
     public ObservableBoolean goToHomepage = new ObservableBoolean(false);
     public ObservableBoolean imgClicked = new ObservableBoolean(false);
     public ObservableBoolean tableButtonClicked = new ObservableBoolean(false);
+
     public Post clickedPost;
     public ImageView clickedImageView;
     public String[] header;
@@ -60,13 +73,15 @@ public class PostActivityVM extends BaseViewModel implements PostContentView.OnV
 
     public PostLayoutSelector layoutSelector = new PostLayoutSelector();
 
-    public PostActivityVM(int conversationId, String title) {
+    public PostActivityVM(Context context, int conversationId, String title) {
+        mContext = context;
         this.conversationId = conversationId;
         this.title = title;
         init();
     }
 
-    public PostActivityVM(Conversation conversation) {
+    public PostActivityVM(Context context, Conversation conversation) {
+        mContext = context;
         this.conversation = conversation;
         postList.add(new Post(Integer.valueOf(conversation.getStartMemberId()), conversation.getStartMember(), conversation.getStartMemberAvatarSuffix(), conversation.getFirstPost(), conversation.getStartTime()));
         conversationId = conversation.getConversationId();
@@ -341,6 +356,33 @@ public class PostActivityVM extends BaseViewModel implements PostContentView.OnV
     public void onImgClick(ImageView imageView) {
         clickedImageView = imageView;
         imgClicked.notifyChange();
+    }
+
+    @Override
+    public void onAttClick(Attachment attachment) {
+        String attUrl = attachment.getUrl();
+        try {
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, attachment.getText());
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
+            request.allowScanningByMediaScanner();// if you want to be available from media players
+            DownloadManager manager = (DownloadManager) mContext.getSystemService(DOWNLOAD_SERVICE);
+            manager.enqueue(request);
+        } catch (SecurityException e) {
+            // in the case of user rejects the permission request
+            e.printStackTrace();
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(attUrl));
+            mContext.startActivity(intent);
+        }
+    }
+
+    @Override
+    public void onQuoteButtonClick(View view, boolean collapsed) {
+        if (collapsed) {
+            ((Button) view).setText(getString(R.string.expand));
+        } else {
+            ((Button) view).setText(getString(R.string.collapse));
+        }
     }
 
     private interface SuccessCallback {

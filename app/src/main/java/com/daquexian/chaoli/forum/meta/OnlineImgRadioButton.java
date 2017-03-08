@@ -18,7 +18,7 @@ import java.util.List;
 public class OnlineImgRadioButton extends RadioButton implements IOnlineImgView {
     OnlineImgImpl mImpl;
 
-    public OnlineImgRadioButton(Context context, @Nullable List<Post.Attachment> attachmentList)
+    public OnlineImgRadioButton(Context context, @Nullable List<PostAttachment> attachmentList)
     {
         super(context);
         init(context, attachmentList);
@@ -50,7 +50,7 @@ public class OnlineImgRadioButton extends RadioButton implements IOnlineImgView 
         ((RadioButton) this).setText(builder);
     }
 
-    private void init(Context context, @Nullable List<Post.Attachment> attachmentList) {
+    private void init(Context context, @Nullable List<PostAttachment> attachmentList) {
         mImpl = new OnlineImgImpl(this);
         mImpl.mAttachmentList = attachmentList;
     }

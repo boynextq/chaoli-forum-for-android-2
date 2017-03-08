@@ -20,7 +20,7 @@ public class OnlineImgTextView extends TextView implements IOnlineImgView
 
 	private static final String TAG = "OnlineImgTextView";
 
-	public OnlineImgTextView(Context context, @Nullable List<Post.Attachment> attachmentList)
+	public OnlineImgTextView(Context context, @Nullable List<PostAttachment> attachmentList)
 	{
 		super(context);
 		init(context, attachmentList);
@@ -47,7 +47,7 @@ public class OnlineImgTextView extends TextView implements IOnlineImgView
 		mImpl.setText(text);
 	}
 
-	private void init(Context context, @Nullable List<Post.Attachment> attachmentList) {
+	private void init(Context context, @Nullable List<PostAttachment> attachmentList) {
 		setTextIsSelectable(true);
 		mImpl = new OnlineImgImpl(this);
 		mImpl.mAttachmentList = attachmentList;

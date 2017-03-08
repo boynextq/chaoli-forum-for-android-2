@@ -85,28 +85,6 @@ public class MyUtils {
         return str.replace("[code]", "").replace("[/code]", "");
     }
 
-    public static void downloadAttachment(Context context, Post.Attachment attachment) {
-        try {
-            String attUrl = MyUtils.getAttachmentFileUrl(attachment);
-            try {
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(attUrl));
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, attachment.getFilename());
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED); // to notify when download is complete
-                request.allowScanningByMediaScanner();// if you want to be available from media players
-                DownloadManager manager = (DownloadManager) context.getSystemService(DOWNLOAD_SERVICE);
-                manager.enqueue(request);
-            } catch (SecurityException e) {
-                // in the case of user rejects the permission request
-                e.printStackTrace();
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(attUrl));
-                context.startActivity(intent);
-            }
-        } catch (UnsupportedEncodingException e) {
-            // say bye-bye to your poor phone
-            Toast.makeText(context, "say bye-bye to your poor phone", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     public static void setToolbarOffset(CoordinatorLayout coordinatorLayout, AppBarLayout appBarLayout, int offset) {
         CoordinatorLayout.LayoutParams layoutParams = (CoordinatorLayout.LayoutParams) appBarLayout.getLayoutParams();
         AppBarLayout.Behavior behavior = (AppBarLayout.Behavior) layoutParams.getBehavior();
@@ -114,15 +92,6 @@ public class MyUtils {
             behavior.setTopAndBottomOffset(offset);
             behavior.onNestedPreScroll(coordinatorLayout, appBarLayout, null, 0, 1, new int[2]);
         }
-    }
-
-    public static String getAttachmentImageUrl(Post.Attachment attachment) {
-        return Constants.ATTACHMENT_IMAGE_URL + attachment.getAttachmentId() + attachment.getSecret();
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public static String getAttachmentFileUrl(Post.Attachment attachment) throws UnsupportedEncodingException{
-        return "https://chaoli.club/index.php/attachment/" + attachment.getAttachmentId() + "_" + URLEncoder.encode(attachment.getFilename(), "UTF-8");
     }
 
     /**

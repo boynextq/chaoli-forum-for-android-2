@@ -72,7 +72,7 @@ public class SFXParser3 {
 		return builder;
 	}
 
-	public static SpannableStringBuilder parse(final Context context, SpannableStringBuilder builder, List<Post.Attachment> attachmentList) {
+	public static SpannableStringBuilder parse(final Context context, SpannableStringBuilder builder, List<PostAttachment> attachmentList) {
 		Pattern cPattern = Pattern.compile("(?i)\\[c=(.*?)]((.|\n)*?)\\[/c]");
 		Matcher c = cPattern.matcher(builder);
 		while (c.find()) {
@@ -190,24 +190,18 @@ public class SFXParser3 {
 
 		Pattern attachmentPattern = Pattern.compile("(?i)\\[attachment:(.*?)]");
 		Matcher attachmentM = attachmentPattern.matcher(builder);
-		boolean isImage = false;
 		while (attachmentList != null && attachmentM.find()) {
 			for (int j = attachmentList.size() - 1; j >= 0; j--) {
-				final Post.Attachment attachment = attachmentList.get(j);
+				final PostAttachment attachment = attachmentList.get(j);
 				if (attachment.getAttachmentId().equals(attachmentM.group(1))) {
-					// skip images
-					for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
-						if (attachment.getFilename().endsWith(image_ext)) {
-							isImage = true;
-						}
-					}
 
-					if (!isImage) {
+					if (!attachment.isImage()) {
 						builder.replace(attachmentM.start(), attachmentM.end(), attachment.getFilename());
 						builder.setSpan(new ClickableSpan() {
 							@Override
 							public void onClick(View view) {
-								MyUtils.downloadAttachment(context, attachment);
+								// MyUtils.downloadAttachment(context, attachment);
+								// TODO: 17-2-17  this whole class is going to be substituted now, so this empty method doesn't matter
 							}
 						}, attachmentM.start(), attachmentM.start() + attachment.getFilename().length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 						attachmentM = attachmentPattern.matcher(builder);
@@ -240,7 +234,7 @@ public class SFXParser3 {
 		}
 		return builder;
 	}
-	public static SpannableStringBuilder parse(final Context context, String string, List<Post.Attachment> attachmentList) {
+	public static SpannableStringBuilder parse(final Context context, String string, List<PostAttachment> attachmentList) {
 		final SpannableStringBuilder builder = new SpannableStringBuilder(string);
 		return parse(context, builder, attachmentList);
 	}

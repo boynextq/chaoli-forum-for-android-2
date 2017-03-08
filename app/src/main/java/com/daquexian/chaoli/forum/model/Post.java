@@ -1,12 +1,12 @@
 package com.daquexian.chaoli.forum.model;
 
-import android.content.Context;
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
 import android.support.annotation.Nullable;
 
 import com.daquexian.chaoli.forum.BR;
-import com.daquexian.chaoli.forum.meta.Constants;
+import com.daquexian.chaoli.forum.meta.PostAttachment;
+import com.daquexian.flexiblerichtextview.Attachment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class Post extends BaseObservable implements Comparable<Post>
 	public String username;
 	public String avatarFormat;
 	public String signature;
-	public List<Attachment> attachments = new ArrayList<>();
+	public List<PostAttachment> attachments = new ArrayList<>();
 
 	public Post(){}
 	public Post(int memberId, String username, String avatarSuffix, String content, String time) {
@@ -49,7 +49,7 @@ public class Post extends BaseObservable implements Comparable<Post>
 				String username, String avatarFormat,
 				@Nullable Map<Integer, String> groups, @Nullable String groupNames,
 				@Nullable String signature,
-				@Nullable List<Attachment> attachments)
+				@Nullable List<PostAttachment> attachments)
 	{
 		this.postId = postId;
 		notifyPropertyChanged(BR.postId);
@@ -78,7 +78,7 @@ public class Post extends BaseObservable implements Comparable<Post>
 		this.avatarFormat = avatarFormat;
 		notifyPropertyChanged(BR.avatarFormat);
 		this.attachments = attachments;
-		notifyPropertyChanged(BR.attachments);
+		notifyPropertyChanged(BR.postAttachments);
 	}
 
 	@Bindable
@@ -248,15 +248,23 @@ public class Post extends BaseObservable implements Comparable<Post>
 	}
 
 	@Bindable
-	public List<Attachment> getAttachments()
+	public List<PostAttachment> getPostAttachments()
 	{
 		return attachments;
 	}
 
-	public void setAttachments(List<Attachment> attachments)
+	public List<Attachment> getAttachments() {
+		List<Attachment> ret = new ArrayList<>();
+		for (PostAttachment attachment : attachments) {
+			ret.add(attachment);
+		}
+		return ret;
+	}
+
+	public void setPostAttachments(List<PostAttachment> attachments)
 	{
 		this.attachments = attachments;
-		notifyPropertyChanged(BR.attachments);
+		notifyPropertyChanged(BR.postAttachments);
 	}
 
 	/*public void setAvatarView(AvatarView avatarView)
@@ -275,124 +283,6 @@ notifyPropertyChanged(BR.new AvatarView(context, avatarFormat, memberId, usernam
 	{
 		return avatarView;
 	}*/
-
-	public class Attachment extends BaseObservable
-	{
-		public String attachmentId;
-		public String filename;
-		public String secret;
-		public int postId;
-		public int draftMemberId;
-		public int draftConversationId;
-
-		public Attachment()
-		{
-			this("", "", "", 0);
-		}
-
-		public Attachment(String attachmentId, String filename, String secret, int postId)
-		{
-			this(attachmentId, filename, secret, postId, 0, 0);
-		}
-
-		public Attachment(String attachmentId, String filename, String secret, int postId,
-						  int draftMemberId, int draftConversationId)
-		{
-			this.attachmentId = attachmentId;
-			notifyPropertyChanged(BR.attachmentId);
-			this.filename = filename;
-			notifyPropertyChanged(BR.filename);
-			this.secret = secret;
-			notifyPropertyChanged(BR.secret);
-			this.postId = postId;
-			notifyPropertyChanged(BR.postId);
-			this.draftMemberId = draftMemberId;
-			notifyPropertyChanged(BR.draftMemberId);
-			this.draftConversationId = draftConversationId;
-			notifyPropertyChanged(BR.draftConversationId);
-		}
-
-		@Bindable
-		public String getAttachmentId()
-		{
-			return attachmentId;
-		}
-
-		public void setAttachmentId(String attachmentId)
-		{
-			this.attachmentId = attachmentId;
-			notifyPropertyChanged(BR.attachmentId);
-		}
-
-		@Bindable
-		public String getFilename()
-		{
-			return filename.toLowerCase();
-		}
-
-		public void setFilename(String filename)
-		{
-			this.filename = filename;
-			notifyPropertyChanged(BR.filename);
-		}
-
-		@Bindable
-		public String getSecret()
-		{
-			return secret;
-		}
-
-		public void setSecret(String secret)
-		{
-			this.secret = secret;
-			notifyPropertyChanged(BR.secret);
-		}
-
-		@Bindable
-		public int getPostId()
-		{
-			return postId;
-		}
-
-		public void setPostId(int postId)
-		{
-			this.postId = postId;
-			notifyPropertyChanged(BR.postId);
-		}
-
-		@Bindable
-		public int getDraftMemberId()
-		{
-			return draftMemberId;
-		}
-
-		public void setDraftMemberId(int draftMemberId)
-		{
-			this.draftMemberId = draftMemberId;
-			notifyPropertyChanged(BR.draftMemberId);
-		}
-
-		@Bindable
-		public int getDraftConversationId()
-		{
-			return draftConversationId;
-		}
-
-		public void setDraftConversationId(int draftConversationId)
-		{
-			this.draftConversationId = draftConversationId;
-			notifyPropertyChanged(BR.draftConversationId);
-		}
-
-		public boolean isImage() {
-			for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
-				if (getFilename().endsWith(image_ext)) {
-					return true;
-				}
-			}
-			return false;
-		}
-	}
 
 	@Override
 	public int compareTo(Post post) {

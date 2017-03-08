@@ -6,8 +6,5 @@
     <attr name="nameColor" format="color"/>
     <attr name="titleColor" format="color"/>
     <attr name="deleteItemColor" format="color"/>
-    <declare-styleable name="QuoteView">
-        <attr name="QuoteViewBackground" format="color"/>
-    </declare-styleable>
     <attr name="alpha" format="float"/>
 </resources>

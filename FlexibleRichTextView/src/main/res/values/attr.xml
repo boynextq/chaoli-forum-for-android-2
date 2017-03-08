@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="QuoteView">
+        <attr name="QuoteViewBackground" format="color"/>
+        <attr name="buttonId" format="reference"/>
+    </declare-styleable>
+</resources>

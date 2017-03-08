@@ -21,7 +21,7 @@ public class OnlineImgEditText extends EditText implements IOnlineImgView {
 
     public static final String TAG = "OnlineImgEditText";
 
-    public OnlineImgEditText(Context context, @Nullable List<Post.Attachment> attachmentList)
+    public OnlineImgEditText(Context context, @Nullable List<PostAttachment> attachmentList)
     {
         super(context);
         init(context, attachmentList);
@@ -66,7 +66,7 @@ public class OnlineImgEditText extends EditText implements IOnlineImgView {
         }
     }
 
-    private void init(Context context, @Nullable List<Post.Attachment> attachmentList) {
+    private void init(Context context, @Nullable List<PostAttachment> attachmentList) {
         setTextIsSelectable(true);
         mImpl = new OnlineImgImpl(this);
         mImpl.mAttachmentList = attachmentList;

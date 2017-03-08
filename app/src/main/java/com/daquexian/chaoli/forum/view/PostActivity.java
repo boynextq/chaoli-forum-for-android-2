@@ -128,11 +128,11 @@ public class PostActivity extends BaseActivity implements ConversationUtils.Igno
 			mConversationId = mConversation.getConversationId();
 			//viewModel.setConversationId(mConversationId);
 			mTitle = mConversation.getTitle();
-			viewModel = new PostActivityVM(mConversation);
+			viewModel = new PostActivityVM(this, mConversation);
 		} else {
 			mConversationId = data.getInt("conversationId");
 			mTitle = data.getString("conversationTitle", getString(R.string.app_name));
-			viewModel = new PostActivityVM(mConversationId, mTitle);
+			viewModel = new PostActivityVM(this, mConversationId, mTitle);
 		}
 		setTitle(mTitle);
 		mPage = data.getInt("page", 1);

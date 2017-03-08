@@ -18,7 +18,7 @@ import java.util.List;
 public class OnlineImgCheckBox extends CheckBox implements IOnlineImgView {
     private OnlineImgImpl mImpl;
 
-    public OnlineImgCheckBox(Context context, @Nullable List<Post.Attachment> attachmentList)
+    public OnlineImgCheckBox(Context context, @Nullable List<PostAttachment> attachmentList)
     {
         super(context);
         init(context, attachmentList);
@@ -45,7 +45,7 @@ public class OnlineImgCheckBox extends CheckBox implements IOnlineImgView {
         mImpl.setText(text);
     }
 
-    private void init(Context context, @Nullable List<Post.Attachment> attachmentList) {
+    private void init(Context context, @Nullable List<PostAttachment> attachmentList) {
         mImpl = new OnlineImgImpl(this);
         mImpl.mAttachmentList = attachmentList;
     }

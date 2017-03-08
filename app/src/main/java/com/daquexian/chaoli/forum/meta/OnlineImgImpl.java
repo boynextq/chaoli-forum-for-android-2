@@ -12,13 +12,11 @@ import android.text.style.ImageSpan;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
-import com.daquexian.chaoli.forum.model.Post;
-import com.daquexian.chaoli.forum.utils.MyUtils;
+import com.daquexian.flexiblerichtextview.CenteredImageSpan;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +31,7 @@ import java.util.regex.Pattern;
  */
 
 class OnlineImgImpl {
-    List<Post.Attachment> mAttachmentList;
+    List<PostAttachment> mAttachmentList;
     private List<Formula> mFormulaList;
     private ArrayMap<Formula, ImageSpan> placeHolders = new ArrayMap<>();
 
@@ -158,11 +156,11 @@ class OnlineImgImpl {
                 url = content;
             } else if (flagAttachment) {
                 for (int i = mAttachmentList.size() - 1; i >= 0; i--) {
-                    Post.Attachment attachment = mAttachmentList.get(i);
+                    PostAttachment attachment = mAttachmentList.get(i);
                     if (attachment.getAttachmentId().equals(content)) {
                         for (String image_ext : Constants.IMAGE_FILE_EXTENSION) {
                             if (attachment.getFilename().endsWith(image_ext)) {
-                                url = MyUtils.getAttachmentImageUrl(attachment);
+                                url = attachment.getUrl();
                             }
                         }
                     }
@@ -234,7 +232,7 @@ class OnlineImgImpl {
                             newImage = resource;
                         }
 
-                        if(finalType == Formula.TYPE_ATT || finalType == Formula.TYPE_IMG || newImage.getHeight() > HEIGHT_THRESHOLD) {
+                        /* if(finalType == Formula.TYPE_ATT || finalType == Formula.TYPE_IMG || newImage.getHeight() > HEIGHT_THRESHOLD) {
                             if (finalType == Formula.TYPE_ATT || finalType == Formula.TYPE_IMG) {
                                 builder.removeSpan(placeHolders.get(formula));
                                 placeHolders.remove(formula);
@@ -242,7 +240,9 @@ class OnlineImgImpl {
                             builder.setSpan(new ImageSpan(((View)mView).getContext(), newImage), finalStart, finalEnd, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                         } else {
                             builder.setSpan(new CenteredImageSpan(((View)mView).getContext(), resource), finalStart, finalEnd, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                        }
+                        } */
+
+                        builder.setSpan(new CenteredImageSpan(((View)mView).getContext(), resource), finalStart, finalEnd, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
 
                         if (mView instanceof EditText) {
                             EditText editText = (EditText) mView;

@@ -71,7 +71,7 @@
 			</LinearLayout>
 		</RelativeLayout>
 
-		<com.daquexian.chaoli.forum.meta.PostContentView
+		<com.daquexian.flexiblerichtextview.FlexibleRichTextView
 			android:id="@+id/content"
 			app:post="@{item}"
 			app:listener="@{handler}"
