@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto">
 	<data>
 		<variable
 			name="viewModel"
@@ -41,6 +42,7 @@
 			android:layout_marginTop="@dimen/common_margin"
 			android:layout_marginLeft="@dimen/common_margin"
 			android:layout_marginRight="@dimen/common_margin"
+			app:passwordToggleEnabled="true"
 			android:layout_below="@id/loginNameLayout">
 			<android.support.design.widget.TextInputEditText
 				android:layout_width="match_parent"
