@@ -15,7 +15,7 @@
     </style>
 
     <style name="PostActivityTheme" parent="AppTheme">
-        <item name="contentColor">@color/contentColor</item>
+        <item name="contentColor">@color/white</item>
         <item name="signatureColor">@color/white</item>
         <item name="deleteItemColor">#FF808080</item>
         <item name="QuoteViewBackground">#FF808080</item>

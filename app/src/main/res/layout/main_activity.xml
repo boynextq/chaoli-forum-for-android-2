@@ -73,6 +73,8 @@
 							app:itemList="@{viewModel.conversationList}"
 							app:selector="@{viewModel.layoutSelector}"
 							android:dividerHeight="0dp"
+							android:paddingBottom="@dimen/recycler_view_padding_bottom"
+							android:clipToPadding="false"
 							android:layout_marginLeft="@dimen/conversationListMargin"
 							android:layout_marginStart="@dimen/conversationListMargin"
 							android:layout_marginRight="@dimen/conversationListMargin"

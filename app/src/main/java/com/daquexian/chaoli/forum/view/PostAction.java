@@ -70,8 +70,9 @@ public class PostAction extends BaseActivity implements IView {
     private void init() {
         configToolbar(R.string.post);
 
-        final String[] channelArr = {getString(R.string.channel_caff), getString(R.string.channel_maths), getString(R.string.channel_physics),
-                getString(R.string.channel_biology),getString(R.string.channel_tech), getString(R.string.channel_lang),
+        final String[] channelArr = {getString(R.string.channel_caff), getString(R.string.channel_maths),
+                getString(R.string.channel_physics), getString(R.string.channel_chem),
+                getString(R.string.channel_biology), getString(R.string.channel_tech), getString(R.string.channel_lang),
                 getString(R.string.channel_socsci)};
 
         viewModel.updateContentRichText.addOnPropertyChangedCallback(new Observable.OnPropertyChangedCallback() {
@@ -207,7 +208,7 @@ public class PostAction extends BaseActivity implements IView {
             }
         });
 
-        /**
+        /*
          * 让各个表情按钮响应单击事件
          */
 

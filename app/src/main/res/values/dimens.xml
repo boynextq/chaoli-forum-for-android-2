@@ -24,4 +24,6 @@
 	<dimen name="common_margin">15dp</dimen>
 	<dimen name="text_field_vertical_padding">20dp</dimen>
 	<dimen name="text_field_horizontal_padding">15dp</dimen>
+
+	<dimen name="recycler_view_padding_bottom">100dp</dimen>
 </resources>
